@@ -60,6 +60,9 @@ class _ProductPageState extends State<ProductPage> {
         final rating = farmData["rating"] ?? 4.0;
         final imageUrl = farmData["imageUrl"] ?? "assets/sample_farm.png";
         final distanceCharge = farmData["distanceCharge"] ?? 10;
+        // Retrieve sellerId from the farm document.
+        final String sellerId = farmData["sellerId"] ?? "unknown";
+
         // Get products list from Firestore.
         final List products = farmData["products"] as List? ?? [];
 
@@ -83,12 +86,11 @@ class _ProductPageState extends State<ProductPage> {
                   if (quantity > 0) {
                     cartItems.add({
                       "name": product["cropName"],
-                      "price": _getUnitPrice(
-                          product["cropName"], product["pricePerKg"]),
+                      "price": _getUnitPrice(product["cropName"], product["pricePerKg"]),
                       "quantity": quantity,
-                      "image":
-                          "assets/${product["cropName"].toString().toLowerCase()}.png",
+                      "image": "assets/${product["cropName"].toString().toLowerCase()}.png",
                       "unit": "500 gms",
+                      "sellerId": sellerId, // Add sellerId from the farm document
                     });
                   }
                 }
@@ -233,8 +235,7 @@ class _ProductPageState extends State<ProductPage> {
                     final product = products[index] as Map<String, dynamic>;
                     final productName = product["cropName"] ?? "Unnamed";
                     final firestorePrice = product["pricePerKg"] ?? 0;
-                    final unitPrice =
-                        _getUnitPrice(productName, firestorePrice);
+                    final unitPrice = _getUnitPrice(productName, firestorePrice);
                     final productStock = product["stock in kgs"] ?? "0";
                     // Current quantity for this product.
                     final quantity = _quantities[index]!;
@@ -286,38 +287,31 @@ class _ProductPageState extends State<ProductPage> {
                                   const SizedBox(height: 10),
                                   // + / - buttons and total price.
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      // Quantity Selector.
                                       Row(
                                         children: [
                                           IconButton(
-                                            icon: const Icon(
-                                                Icons.remove_circle_outline),
+                                            icon: const Icon(Icons.remove_circle_outline),
                                             onPressed: () {
                                               setState(() {
                                                 if (_quantities[index]! > 0) {
-                                                  _quantities[index] =
-                                                      _quantities[index]! - 1;
+                                                  _quantities[index] = _quantities[index]! - 1;
                                                 }
                                               });
                                             },
                                           ),
                                           Text(quantity.toString()),
                                           IconButton(
-                                            icon: const Icon(
-                                                Icons.add_circle_outline),
+                                            icon: const Icon(Icons.add_circle_outline),
                                             onPressed: () {
                                               setState(() {
-                                                _quantities[index] =
-                                                    _quantities[index]! + 1;
+                                                _quantities[index] = _quantities[index]! + 1;
                                               });
                                             },
                                           ),
                                         ],
                                       ),
-                                      // Price display.
                                       Text(
                                         "₹${unitPrice * quantity}",
                                         style: const TextStyle(fontSize: 16),

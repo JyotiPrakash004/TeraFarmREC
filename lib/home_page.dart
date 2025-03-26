@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'Product_page.dart';
 import 'login_page.dart';
+import 'dashboard_page.dart'; // Import the dashboard page
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,7 +13,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Categories remain the same
   final List<Map<String, String>> categories = [
     {"name": "Onion", "image": "assets/onion.png"},
     {"name": "Tomato", "image": "assets/tomato.png"},
@@ -20,7 +20,6 @@ class _HomePageState extends State<HomePage> {
     {"name": "Greens", "image": "assets/greens.png"},
   ];
 
-  // Logout function
   void _logout() async {
     await FirebaseAuth.instance.signOut();
     Navigator.pushReplacement(
@@ -29,27 +28,38 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Category filter (dummy for now)
   void _onCategorySelected(String category) {
     print("Filtering farms by: $category");
   }
 
-  // Farm selection → navigate to product page or farm details
   void _onFarmSelected(DocumentSnapshot farmDoc) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ProductPage(farmId: farmDoc.id),
-    ),
-  );
-}
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductPage(farmId: farmDoc.id),
+      ),
+    );
+  }
 
+  int _selectedIndex = 0;
+
+  void _onNavItemTapped(int index) {
+    if (index == 1) {
+      // Navigate to the dashboard when "Farm" is pressed
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => SellerDashboard()),
+      );
+    }
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      // AppBar with logout button on the left
       appBar: AppBar(
         backgroundColor: Colors.green.shade900,
         leading: IconButton(
@@ -78,7 +88,6 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search Bar
             TextField(
               decoration: InputDecoration(
                 hintText: "Search",
@@ -92,15 +101,11 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             SizedBox(height: 20),
-
-            // Title
             Text(
               "Eat what makes you healthy",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
-
-            // Category Row
             SizedBox(
               height: 80,
               child: ListView(
@@ -120,8 +125,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             SizedBox(height: 20),
-
-            // Farms Header + Filter Icon
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -135,8 +138,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-
-            // Farms List from Firestore
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('farms')
@@ -165,7 +166,6 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     final farm = farmDocs[index].data() as Map<String, dynamic>;
                     final farmName = farm["farmName"] ?? "Unnamed Farm";
-                    // Updated key: using 'farmDescription' instead of 'description'
                     final description = farm["farmDescription"] ?? "No description";
                     final imageUrl = farm["imageUrl"] ?? "assets/sample_farm.png";
                     final scale = farm["scale"] ?? "N/A";
@@ -181,7 +181,6 @@ class _HomePageState extends State<HomePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Farm Image
                             ClipRRect(
                               borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
                               child: imageUrl.startsWith("assets/")
@@ -198,7 +197,6 @@ class _HomePageState extends State<HomePage> {
                                       fit: BoxFit.cover,
                                     ),
                             ),
-                            // Farm Details
                             Padding(
                               padding: const EdgeInsets.all(10.0),
                               child: Column(
@@ -236,6 +234,17 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.purple, // Selected (Farm) icon is purple
+        unselectedItemColor: Colors.grey,
+        onTap: _onNavItemTapped,
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Account'),
+        ],
       ),
     );
   }

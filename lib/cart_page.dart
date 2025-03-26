@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CartPage extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
@@ -13,7 +15,7 @@ class _CartPageState extends State<CartPage> {
   // Delivery or Pickup
   String _deliveryMethod = "delivery";
 
-  // A fixed delivery fee, or you can calculate it based on distance
+  // Fixed delivery fee (or calculated based on distance)
   final int _deliveryFee = 30;
 
   // Clear all items from the cart
@@ -23,7 +25,7 @@ class _CartPageState extends State<CartPage> {
     });
   }
 
-  // Increase quantity
+  // Increase quantity for an item
   void _incrementQuantity(int index) {
     setState(() {
       widget.cartItems[index]["quantity"] =
@@ -31,20 +33,20 @@ class _CartPageState extends State<CartPage> {
     });
   }
 
-  // Decrease quantity
+  // Decrease quantity for an item
   void _decrementQuantity(int index) {
     setState(() {
       final currentQty = widget.cartItems[index]["quantity"] as int;
       if (currentQty > 1) {
         widget.cartItems[index]["quantity"] = currentQty - 1;
       } else {
-        // If quantity is 1 and we press -, remove the item entirely
+        // Remove item if quantity becomes zero
         widget.cartItems.removeAt(index);
       }
     });
   }
 
-  // Calculate total of all items
+  // Calculate total price of cart items
   int get _itemTotal {
     int total = 0;
     for (final item in widget.cartItems) {
@@ -55,18 +57,52 @@ class _CartPageState extends State<CartPage> {
     return total;
   }
 
-  // Final payable = item total + (delivery fee if chosen)
+  // Calculate final payable amount (including delivery fee)
   int get _totalPayable {
-    if (_deliveryMethod == "delivery") {
-      return _itemTotal + _deliveryFee;
-    } else {
-      return _itemTotal;
+    return _deliveryMethod == "delivery" ? _itemTotal + _deliveryFee : _itemTotal;
+  }
+
+  // Confirm order and save order details to Firestore
+  Future<void> _confirmOrder() async {
+    if (widget.cartItems.isEmpty) return;
+
+    try {
+      // Retrieve sellerId from the first cart item.
+      // It should have been set in the ProductPage.
+      final String sellerId = widget.cartItems[0]["sellerId"] ?? "unknown";
+
+      // Build order data
+      final Map<String, dynamic> orderData = {
+        "cartItems": widget.cartItems,
+        "deliveryMethod": _deliveryMethod,
+        "itemTotal": _itemTotal,
+        "deliveryFee": _deliveryMethod == "delivery" ? _deliveryFee : 0,
+        "totalPayable": _totalPayable,
+        "status": "pending",
+        "orderDate": DateTime.now().toIso8601String(),
+        "buyerId": FirebaseAuth.instance.currentUser?.uid ?? "unknown",
+        "sellerId": sellerId,
+      };
+
+      // Save the order in Firestore
+      await FirebaseFirestore.instance.collection("orders").add(orderData);
+
+      // Clear the cart and notify user
+      setState(() {
+        widget.cartItems.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Order Confirmed!")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error confirming order: $e")),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // If cart is empty, we can show an empty state
     final cartCount = widget.cartItems.length;
 
     return Scaffold(
@@ -84,14 +120,12 @@ class _CartPageState extends State<CartPage> {
         ],
       ),
       body: cartCount == 0
-          ? const Center(
-              child: Text("Your cart is empty."),
-            )
+          ? const Center(child: Text("Your cart is empty."))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  // List of items
+                  // Display cart items
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -122,13 +156,10 @@ class _CartPageState extends State<CartPage> {
                               ),
                             ),
                             const SizedBox(width: 10),
-
-                            // Details
+                            // Product details
                             Expanded(
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
-                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -146,13 +177,11 @@ class _CartPageState extends State<CartPage> {
                                 ),
                               ),
                             ),
-
                             // Quantity controls
                             Row(
                               children: [
                                 IconButton(
-                                  icon:
-                                      const Icon(Icons.remove_circle_outline),
+                                  icon: const Icon(Icons.remove_circle_outline),
                                   onPressed: () => _decrementQuantity(index),
                                 ),
                                 Text("$quantity"),
@@ -168,33 +197,21 @@ class _CartPageState extends State<CartPage> {
                     },
                   ),
                   const SizedBox(height: 10),
-
                   // Price summary
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        "Item Total",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      Text(
-                        "₹$_itemTotal",
-                        style: const TextStyle(fontSize: 16),
-                      ),
+                      const Text("Item Total", style: TextStyle(fontSize: 16)),
+                      Text("₹$_itemTotal", style: const TextStyle(fontSize: 16)),
                     ],
                   ),
                   const SizedBox(height: 5),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        "Delivery Fee",
-                        style: TextStyle(fontSize: 16),
-                      ),
+                      const Text("Delivery Fee", style: TextStyle(fontSize: 16)),
                       Text(
-                        _deliveryMethod == "delivery"
-                            ? "₹$_deliveryFee"
-                            : "₹0",
+                        _deliveryMethod == "delivery" ? "₹$_deliveryFee" : "₹0",
                         style: const TextStyle(fontSize: 16),
                       ),
                     ],
@@ -205,29 +222,19 @@ class _CartPageState extends State<CartPage> {
                     children: [
                       const Text(
                         "Total Payable",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         "₹$_totalPayable",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // Radio Buttons for Delivery or Pickup
+                  // Delivery method options
                   const Text(
                     "How would you like to receive your order?",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Row(
                     children: [
@@ -255,8 +262,7 @@ class _CartPageState extends State<CartPage> {
                     ],
                   ),
                   const SizedBox(height: 10),
-
-                  // Time + Address row
+                  // Address row
                   Text(
                     "Delivering to you in between\n10 AM - 12 PM",
                     style: TextStyle(color: Colors.grey.shade700),
@@ -274,7 +280,7 @@ class _CartPageState extends State<CartPage> {
                       ),
                       TextButton(
                         onPressed: () {
-                          // Let user change address
+                          // Let user change address if needed
                         },
                         child: const Text(
                           "CHANGE ADDRESS",
@@ -284,19 +290,11 @@ class _CartPageState extends State<CartPage> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
                   // Confirm Order Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Confirm order logic
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Order Confirmed!"),
-                          ),
-                        );
-                      },
+                      onPressed: _confirmOrder,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade800,
                         padding: const EdgeInsets.symmetric(vertical: 12),

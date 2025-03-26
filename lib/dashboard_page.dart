@@ -5,6 +5,8 @@ import 'add_product_page.dart';
 import 'order_list_page.dart';
 import 'list_farm_page.dart';
 import 'login_page.dart';
+import 'home_page.dart'; 
+import 'edit_farm_page.dart';
 
 class SellerDashboard extends StatefulWidget {
   const SellerDashboard({super.key});
@@ -18,6 +20,9 @@ class _SellerDashboardState extends State<SellerDashboard> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   double earnings = 5000.0;
 
+  // Set default selected index to 1 (Farm)
+  int _selectedIndex = 1;
+
   // Logout function that signs out and navigates to the login page
   void logout() async {
     await _auth.signOut();
@@ -27,6 +32,25 @@ class _SellerDashboardState extends State<SellerDashboard> {
     );
   }
 
+  // Bottom navigation tap handler
+  void _onNavItemTapped(int index) {
+    if (index == 0) {
+      // Navigate to HomePage when home button is tapped
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } else if (index == 1) {
+      // Already on SellerDashboard (Farm), so do nothing.
+    } else if (index == 2) {
+      // Change nothing else; regardless of tapped icon, keep Farm (index 1) selected.
+    }
+    // Always reset selected index to 1 so that only the Farm icon is colored.
+    setState(() {
+      _selectedIndex = 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     String sellerId = _auth.currentUser!.uid;
@@ -34,9 +58,11 @@ class _SellerDashboardState extends State<SellerDashboard> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Removed the default back button
         backgroundColor: Colors.green.shade800,
         elevation: 0,
         title: Row(
+          mainAxisAlignment: MainAxisAlignment.start, // Left align the title content
           children: [
             Icon(Icons.menu, color: Colors.white),
             SizedBox(width: 10),
@@ -55,15 +81,14 @@ class _SellerDashboardState extends State<SellerDashboard> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Colors.green.shade800,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.purple, // Selected (Farm) icon is purple
+        unselectedItemColor: Colors.grey, // Others remain grey
+        onTap: _onNavItemTapped,
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.local_florist), label: 'Farm'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart), label: 'My Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Account'),
+          BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Account'),
         ],
       ),
       body: SafeArea(
@@ -88,7 +113,6 @@ class _SellerDashboardState extends State<SellerDashboard> {
                 child: Center(child: Text("Bar Chart Placeholder")),
               ),
               SizedBox(height: 20),
-
               // Centered dashboard buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -120,7 +144,6 @@ class _SellerDashboardState extends State<SellerDashboard> {
                 ],
               ),
               SizedBox(height: 20),
-
               // "Your Farm" heading
               Align(
                 alignment: Alignment.centerLeft,
@@ -130,16 +153,14 @@ class _SellerDashboardState extends State<SellerDashboard> {
                 ),
               ),
               SizedBox(height: 10),
-
               // Display the farm created by this seller
               Center(
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('farms')
                       .where('sellerId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                      .snapshots(), // <-- Replaced the query line
+                      .snapshots(),
                   builder: (context, snapshot) {
-                    // Removed loading symbol:
                     if (!snapshot.hasData) return SizedBox();
                     final farms = snapshot.data!.docs;
                     if (farms.isEmpty) {
@@ -148,7 +169,6 @@ class _SellerDashboardState extends State<SellerDashboard> {
                     final farm = farms.first;
                     return ElevatedButton(
                       onPressed: () {
-                        // Navigate to edit page for the farm
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -179,7 +199,6 @@ class _SellerDashboardState extends State<SellerDashboard> {
                 ),
               ),
               SizedBox(height: 20),
-
               // Product Listings Table
               Container(
                 width: 300,
@@ -199,9 +218,8 @@ class _SellerDashboardState extends State<SellerDashboard> {
                       stream: FirebaseFirestore.instance
                           .collection('farms')
                           .where('sellerId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                          .snapshots(), // <-- Replaced the query line
+                          .snapshots(),
                       builder: (context, snapshot) {
-                        // Removed loading symbol:
                         if (!snapshot.hasData) return SizedBox();
                         final farmDocs = snapshot.data!.docs;
                         if (farmDocs.isEmpty) {
@@ -259,7 +277,6 @@ class _SellerDashboardState extends State<SellerDashboard> {
                 ),
               ),
               SizedBox(height: 20),
-
               // BUY SEEDS BUTTON
               ElevatedButton(
                 onPressed: () {
@@ -300,24 +317,7 @@ class _SellerDashboardState extends State<SellerDashboard> {
   }
 }
 
-// Dummy page for editing a farm; implement as needed.
-class EditFarmPage extends StatelessWidget {
-  final String farmId;
-  const EditFarmPage({super.key, required this.farmId});
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Edit Farm"),
-        backgroundColor: Colors.green.shade800,
-      ),
-      body: Center(
-        child: Text("Edit details for farm: $farmId"),
-      ),
-    );
-  }
-}
+
 
 // Dummy page for buying seeds; implement as needed.
 class BuySeedsPage extends StatelessWidget {
