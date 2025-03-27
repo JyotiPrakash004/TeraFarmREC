@@ -13,7 +13,7 @@ class _OrderListPageState extends State<OrderListPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Update the status of an order (e.g., accepted, rejected, delivered)
+  // Update the status of an order
   Future<void> _updateOrderStatus(String orderId, String newStatus) async {
     await _firestore.collection('orders').doc(orderId).update({
       'status': newStatus,
@@ -44,21 +44,30 @@ class _OrderListPageState extends State<OrderListPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Separate orders into pending vs. completed
           final allOrders = snapshot.data!.docs;
+
+          // Separate orders by status
           final pendingOrders = allOrders
               .where((doc) => (doc['status'] ?? 'pending') == 'pending')
               .toList();
-          final completedOrders = allOrders
-              .where((doc) => (doc['status'] ?? 'pending') != 'pending')
+
+          // "accepted" = in-between status
+          final acceptedOrders = allOrders
+              .where((doc) => (doc['status'] ?? '') == 'accepted')
               .toList();
+
+          // completed = "rejected", "delivered", or "cancelled"
+          final completedOrders = allOrders.where((doc) {
+            final s = (doc['status'] ?? '').toString().toLowerCase();
+            return s == 'rejected' || s == 'delivered' || s == 'cancelled';
+          }).toList();
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title: Pending requests
+                // PENDING REQUESTS
                 const Text(
                   "Pending requests",
                   style: TextStyle(
@@ -68,17 +77,18 @@ class _OrderListPageState extends State<OrderListPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                // List of pending orders
-                if (pendingOrders.isEmpty)
+                if (pendingOrders.isEmpty && acceptedOrders.isEmpty)
                   const Text("No pending orders.")
-                else
-                  ...pendingOrders.map(
-                    (orderDoc) => _buildOrderCard(orderDoc, isPending: true),
-                  ),
+                else ...[
+                  for (final doc in pendingOrders)
+                    _buildOrderCard(doc, status: 'pending'),
+                  for (final doc in acceptedOrders)
+                    _buildOrderCard(doc, status: 'accepted'),
+                ],
 
                 const SizedBox(height: 20),
 
-                // Title: History
+                // HISTORY
                 const Text(
                   "History",
                   style: TextStyle(
@@ -88,13 +98,11 @@ class _OrderListPageState extends State<OrderListPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                // List of completed orders
                 if (completedOrders.isEmpty)
                   const Text("No completed orders.")
                 else
-                  ...completedOrders.map(
-                    (orderDoc) => _buildOrderCard(orderDoc, isPending: false),
-                  ),
+                  for (final doc in completedOrders)
+                    _buildOrderCard(doc, status: doc['status']),
               ],
             ),
           );
@@ -103,19 +111,17 @@ class _OrderListPageState extends State<OrderListPage> {
     );
   }
 
-  /// Builds the UI card for each order, matching the style in your screenshot.
-  Widget _buildOrderCard(DocumentSnapshot orderDoc, {required bool isPending}) {
+  /// Builds each order card.
+  Widget _buildOrderCard(DocumentSnapshot orderDoc, {required String status}) {
     final data = orderDoc.data() as Map<String, dynamic>;
     final String orderId = orderDoc.id;
 
-    // Fields from Firestore (change to match your structure)
-    final String buyerName = data['buyerName'] ?? "Unknown";
+    // The order doc has "buyerId" but not "buyerName".
+    final String buyerId = data['buyerId'] ?? "unknown";
     final String location = data['location'] ?? "Unknown";
     final String deliveryType = data['delivery'] ?? "pickup";
-    final String status = data['status'] ?? "pending";
 
-    // Example: Show first product image if desired
-    // If your 'cartItems' is a list, you can do something like:
+    // If you store "cartItems" and want the first product image
     String productImage = "assets/placeholder.png";
     if (data.containsKey("cartItems") &&
         data["cartItems"] is List &&
@@ -126,76 +132,138 @@ class _OrderListPageState extends State<OrderListPage> {
       }
     }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 5),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            // Left: Product image (or a default)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                productImage,
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(width: 10),
-            // Middle: Buyer name, location, delivery
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    buyerName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+    return FutureBuilder<DocumentSnapshot>(
+      future: _firestore.collection('users').doc(buyerId).get(),
+      builder: (context, snapshot) {
+        String buyerName = "Unknown";
+        if (snapshot.hasData && snapshot.data!.exists) {
+          buyerName = snapshot.data!.get('username') ?? "Unknown";
+        }
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                // Product image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    productImage,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
                   ),
-                  Text("Location: $location"),
-                  Text("Delivery: $deliveryType"),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Right: Accept/Reject or Status
-            isPending
-                ? Row(
+                ),
+                const SizedBox(width: 10),
+
+                // Buyer info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.check_circle, color: Colors.green),
-                        onPressed: () => _updateOrderStatus(orderId, 'accepted'),
+                      Text(
+                        buyerName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.cancel, color: Colors.red),
-                        onPressed: () => _updateOrderStatus(orderId, 'rejected'),
-                      ),
+                      Text("Location: $location"),
+                      Text("Delivery: $deliveryType"),
                     ],
-                  )
-                : _buildStatusLabel(status),
-          ],
-        ),
-      ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Status / Action buttons
+                _buildActionButtons(status, orderId),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  /// Builds a small status label for completed orders (e.g., "Delivered", "Cancelled")
-  Widget _buildStatusLabel(String status) {
-    // Decide color based on status
-    Color bgColor;
-    String text;
+  /// Builds the right-side area for each status.
+  Widget _buildActionButtons(String status, String orderId) {
     switch (status.toLowerCase()) {
+      case 'pending':
+        // Show green check (accept) and red X (reject)
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.check_circle, color: Colors.green),
+              onPressed: () => _updateOrderStatus(orderId, 'accepted'),
+            ),
+            IconButton(
+              icon: const Icon(Icons.cancel, color: Colors.red),
+              onPressed: () => _updateOrderStatus(orderId, 'rejected'),
+            ),
+          ],
+        );
+
       case 'accepted':
-        bgColor = Colors.green;
-        text = "Delivered"; // Or "Accepted"
-        break;
+        // Stack "Delivered" above "Cancelled" in a Column
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end, // Right-align the buttons
+          children: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                minimumSize: const Size(80, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              ),
+              onPressed: () => _updateOrderStatus(orderId, 'delivered'),
+              child: const Text("Delivered", style: TextStyle(fontSize: 14)),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                minimumSize: const Size(80, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              ),
+              onPressed: () => _updateOrderStatus(orderId, 'cancelled'),
+              child: const Text("Cancelled", style: TextStyle(fontSize: 14)),
+            ),
+          ],
+        );
+
       case 'rejected':
+        return _buildStatusLabel("cancelled");
+
+      case 'delivered':
+        return _buildStatusLabel("delivered");
+
+      case 'cancelled':
+        return _buildStatusLabel("cancelled");
+
+      default:
+        return _buildStatusLabel(status);
+    }
+  }
+
+  /// Color-coded label for final statuses
+  Widget _buildStatusLabel(String status) {
+    late Color bgColor;
+    late String text;
+    switch (status.toLowerCase()) {
+      case 'rejected':
+      case 'cancelled':
         bgColor = Colors.red;
-        text = "Cancelled"; // Or "Rejected"
+        text = "Cancelled";
+        break;
+      case 'delivered':
+        bgColor = Colors.green;
+        text = "Delivered";
         break;
       default:
         bgColor = Colors.grey;

@@ -12,7 +12,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(TeraFarmApp());
 }
-
+ 
 class TeraFarmApp extends StatelessWidget {
   const TeraFarmApp({super.key});
 
