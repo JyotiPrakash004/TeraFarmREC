@@ -98,7 +98,7 @@ class _SellerDashboardState extends State<SellerDashboard> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ChatScreen()),
+            MaterialPageRoute(builder: (context) => PlantCareApp()),
           );
         },
         child: Icon(Icons.chat, color: Colors.white), // Icon color set to white
