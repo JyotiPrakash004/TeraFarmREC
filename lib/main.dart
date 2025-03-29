@@ -1,11 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'landing_page.dart';
-import 'home_page.dart';
-import 'dashboard_page.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
