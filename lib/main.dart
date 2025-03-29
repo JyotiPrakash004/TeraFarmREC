@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'landing_page.dart';
 import 'home_page.dart';
-import 'dashboard_page.dart'; // Seller dashboard
+import 'dashboard_page.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,33 +27,7 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
-        } else if (snapshot.hasData) {
-          return FutureBuilder<DocumentSnapshot>(
-            future:
-                FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(snapshot.data!.uid)
-                    .get(),
-            builder: (context, userSnapshot) {
-              if (!userSnapshot.hasData) {
-                return Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              String role = userSnapshot.data!['role'] ?? 'buyer';
-              return role == 'buyer' ? HomePage() : SellerDashboard();
-            },
-          );
-        } else {
-          return LandingPage();
-        }
-      },
-    );
+    // Always return LandingPage, regardless of auth status.
+    return LandingPage();
   }
 }

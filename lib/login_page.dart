@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home_page.dart';
-import 'dashboard_page.dart';
 import 'create_account_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -17,7 +16,6 @@ class _LoginPageState extends State<LoginPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  String selectedRole = 'buyer'; // Default role selection
 
   void _loginUser(BuildContext context) async {
     try {
@@ -26,28 +24,14 @@ class _LoginPageState extends State<LoginPage> {
         password: passwordController.text.trim(),
       );
 
-      // Update Firestore with selected role
-      await _firestore.collection('users').doc(userCredential.user!.uid).set(
-        {'role': selectedRole},
-        SetOptions(merge: true), // Merge keeps existing data intact
-      );
-
-      // Navigate based on selected role
-      if (selectedRole == 'seller') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => SellerDashboard()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(
+      // Navigate directly to HomePage after successful login
+      Navigator.pushReplacement(
         context,
-      ).showSnackBar(SnackBar(content: Text("Login Failed: ${e.toString()}")));
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Login Failed: ${e.toString()}")));
     }
   }
 
@@ -83,30 +67,7 @@ class _LoginPageState extends State<LoginPage> {
 
             _buildTextField("Email Address", emailController),
             _buildTextField("Password", passwordController, isPassword: true),
-
             SizedBox(height: 20),
-
-            // Buyer/Seller Role Selection
-            Text(
-              "Select Role",
-              style: TextStyle(fontSize: 16, color: Colors.white),
-            ),
-            Row(
-              children: [
-                Radio(
-                  value: 'buyer',
-                  groupValue: selectedRole,
-                  onChanged: (value) => setState(() => selectedRole = value!),
-                ),
-                Text("Buyer", style: TextStyle(color: Colors.white)),
-                Radio(
-                  value: 'seller',
-                  groupValue: selectedRole,
-                  onChanged: (value) => setState(() => selectedRole = value!),
-                ),
-                Text("Seller", style: TextStyle(color: Colors.white)),
-              ],
-            ),
 
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -132,13 +93,12 @@ class _LoginPageState extends State<LoginPage> {
             // Signup Navigation
             Center(
               child: TextButton(
-                onPressed:
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreateAccountPage(),
-                      ),
-                    ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreateAccountPage(),
+                  ),
+                ),
                 child: Text(
                   "Don't have an account? Sign up",
                   style: TextStyle(color: Colors.white),

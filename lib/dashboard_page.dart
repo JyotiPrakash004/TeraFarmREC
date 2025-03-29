@@ -6,7 +6,8 @@ import 'order_list_page.dart';
 import 'list_farm_page.dart';
 import 'login_page.dart';
 import 'home_page.dart'; 
-import 'edit_farm_page.dart';// Imported to navigate to HomePage
+import 'edit_farm_page.dart';
+import 'chatbot_page.dart'; // <-- Added import for ChatbotPage
 
 class SellerDashboard extends StatefulWidget {
   const SellerDashboard({super.key});
@@ -90,6 +91,17 @@ class _SellerDashboardState extends State<SellerDashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'),
           BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Account'),
         ],
+      ),
+      // Added FloatingActionButton for Chatbot with white chat icon on green background
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.green.shade800,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChatScreen()),
+          );
+        },
+        child: Icon(Icons.chat, color: Colors.white), // Icon color set to white
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -316,8 +328,6 @@ class _SellerDashboardState extends State<SellerDashboard> {
     );
   }
 }
-
-
 
 // Dummy page for buying seeds; implement as needed.
 class BuySeedsPage extends StatelessWidget {
