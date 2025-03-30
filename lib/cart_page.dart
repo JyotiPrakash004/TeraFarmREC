@@ -67,12 +67,8 @@ class _CartPageState extends State<CartPage> {
     if (widget.cartItems.isEmpty) return;
 
     try {
-      // Retrieve sellerId from the first cart item.
-      // It should have been set in the ProductPage.
-      final String sellerId = widget.cartItems[0]["sellerId"] ?? "unknown";
-
-      // Build order data
-      final Map<String, dynamic> orderData = {
+      final sellerId = widget.cartItems.first["sellerId"] ?? "unknown";
+      final orderData = {
         "cartItems": widget.cartItems,
         "deliveryMethod": _deliveryMethod,
         "itemTotal": _itemTotal,
@@ -84,20 +80,12 @@ class _CartPageState extends State<CartPage> {
         "sellerId": sellerId,
       };
 
-      // Save the order in Firestore
       await FirebaseFirestore.instance.collection("orders").add(orderData);
 
-      // Clear the cart and notify user
-      setState(() {
-        widget.cartItems.clear();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Order Confirmed!")),
-      );
+      setState(() => widget.cartItems.clear());
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order Confirmed!")));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error confirming order: $e")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error confirming order: $e")));
     }
   }
 

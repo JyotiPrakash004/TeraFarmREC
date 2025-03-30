@@ -60,7 +60,7 @@ class _SellerDashboardState extends State<SellerDashboard> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false, // Removed the default back button
-        backgroundColor: Colors.green.shade800,
+        backgroundColor: Colors.green.shade900, // Updated to match HomePage AppBar color
         elevation: 0,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.start, // Left align the title content
@@ -92,7 +92,7 @@ class _SellerDashboardState extends State<SellerDashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Account'),
         ],
       ),
-      // Added FloatingActionButton for Chatbot with white chat icon on green background
+      // Updated FloatingActionButton with custom icon for plant care
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.green.shade800,
         onPressed: () {
@@ -101,7 +101,12 @@ class _SellerDashboardState extends State<SellerDashboard> {
             MaterialPageRoute(builder: (context) => PlantCareApp()),
           );
         },
-        child: Icon(Icons.chat, color: Colors.white), // Icon color set to white
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(Icons.eco, color: Colors.white, size: 28), // Leaf icon
+          ],
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -170,14 +175,13 @@ class _SellerDashboardState extends State<SellerDashboard> {
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('farms')
-                      .where('sellerId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                      .where('sellerId', isEqualTo: sellerId)
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) return SizedBox();
                     final farms = snapshot.data!.docs;
-                    if (farms.isEmpty) {
-                      return Text("No farm registered by you.");
-                    }
+                    if (farms.isEmpty) return Text("No farm registered by you.");
+
                     final farm = farms.first;
                     return ElevatedButton(
                       onPressed: () {
@@ -229,7 +233,7 @@ class _SellerDashboardState extends State<SellerDashboard> {
                     StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
                           .collection('farms')
-                          .where('sellerId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                          .where('sellerId', isEqualTo: sellerId)
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) return SizedBox();
@@ -329,9 +333,33 @@ class _SellerDashboardState extends State<SellerDashboard> {
   }
 }
 
-// Dummy page for buying seeds; implement as needed.
-class BuySeedsPage extends StatelessWidget {
+class BuySeedsPage extends StatefulWidget {
   const BuySeedsPage({super.key});
+
+  @override
+  _BuySeedsPageState createState() => _BuySeedsPageState();
+}
+
+class _BuySeedsPageState extends State<BuySeedsPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _seedNameController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController();
+
+  void _orderSeeds() {
+    if (_formKey.currentState!.validate()) {
+      final seedName = _seedNameController.text;
+      final quantity = int.parse(_quantityController.text);
+
+      // Simulate order placement (replace with actual logic as needed)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Order placed for $quantity Kg of $seedName")),
+      );
+
+      // Clear the form
+      _seedNameController.clear();
+      _quantityController.clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -340,8 +368,67 @@ class BuySeedsPage extends StatelessWidget {
         title: Text("Buy Seeds"),
         backgroundColor: Colors.green.shade800,
       ),
-      body: Center(
-        child: Text("Buy Seeds Page"),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Order Seeds",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 20),
+              TextFormField(
+                controller: _seedNameController,
+                decoration: InputDecoration(
+                  labelText: "Seed Name",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Please enter the seed name";
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              TextFormField(
+                controller: _quantityController,
+                decoration: InputDecoration(
+                  labelText: "Quantity (in Kg)",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Please enter the quantity";
+                  }
+                  if (int.tryParse(value) == null || int.parse(value) <= 0) {
+                    return "Please enter a valid quantity";
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _orderSeeds,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade800,
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  "Place Order",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

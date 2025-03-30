@@ -76,37 +76,24 @@ class _ListFarmPageState extends State<ListFarmPage> {
     setState(() => _isUploading = true);
 
     String imageUrl = "";
-
-    // Upload image if selected
     if (_selectedImage != null) {
       try {
-        String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-        Reference storageRef = FirebaseStorage.instance.ref("farm_images/$fileName.jpg");
-
-        UploadTask uploadTask = storageRef.putFile(_selectedImage!);
-        TaskSnapshot snapshot = await uploadTask;
-
-        imageUrl = await snapshot.ref.getDownloadURL();
+        final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+        final storageRef = FirebaseStorage.instance.ref("farm_images/$fileName.jpg");
+        imageUrl = await (await storageRef.putFile(_selectedImage!)).ref.getDownloadURL();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error uploading image: $e")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error uploading image: $e")));
         setState(() => _isUploading = false);
         return;
       }
     }
 
-    // Build product list data
-    List<Map<String, String>> productData = [];
-    for (var product in _products) {
-      productData.add({
-        'cropName': product['cropName']!.text.trim(),
-        'stock in kgs': product['stock']!.text.trim(),
-        'pricePerKg': product['price']!.text.trim(),
-      });
-    }
+    final productData = _products.map((product) => {
+          'cropName': product['cropName']!.text.trim(),
+          'stock in kgs': product['stock']!.text.trim(),
+          'pricePerKg': product['price']!.text.trim(),
+        }).toList();
 
-    // Save farm details + products to Firestore (with sellerId)
     try {
       await FirebaseFirestore.instance.collection('farms').add({
         'farmName': _farmNameController.text.trim(),
@@ -116,27 +103,16 @@ class _ListFarmPageState extends State<ListFarmPage> {
         'scale': _scaleOption,
         'products': productData,
         'imageUrl': imageUrl,
-        // Store the seller's UID
         'sellerId': FirebaseAuth.instance.currentUser!.uid,
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Farm created successfully!")),
-      );
-
-      // Clear the form
-      _farmNameController.clear();
-      _contactNumberController.clear();
-      _locationController.clear();
-      _farmDescriptionController.clear();
-      _selectedImage = null;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Farm created successfully!")));
+      _formKey.currentState!.reset();
       _products.clear();
-      _addProductField(); // re-add a blank product
+      _addProductField();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error saving farm details: $e")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error saving farm details: $e")));
     }
 
     setState(() => _isUploading = false);
@@ -296,11 +272,26 @@ class _ListFarmPageState extends State<ListFarmPage> {
       margin: EdgeInsets.only(bottom: 15),
       padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
+        color: Colors.grey.shade100, // Light background for product container
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            "Product ${index + 1}",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 10),
+
           // Crop Name
           TextFormField(
             controller: product['cropName'],

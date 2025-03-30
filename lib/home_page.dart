@@ -63,13 +63,17 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.green.shade900,
         leading: IconButton(
-          icon: Icon(Icons.logout, color: Colors.white),
-          onPressed: _logout,
+          icon: Icon(Icons.menu, color: Colors.white), // Changed to menu icon
+          onPressed: () {
+            // Add functionality for menu icon if needed
+          },
         ),
         title: Row(
           children: [
-            Image.asset("assets/terafarm_logo.png", height: 40),
-            SizedBox(width: 10),
+            Transform.translate(
+              offset: Offset(-40, 5), // Move the logo 40 pixels left and 5 pixels down
+              child: Image.asset("assets/terafarm_logo.png", height: 40),
+            ),
           ],
         ),
         actions: [

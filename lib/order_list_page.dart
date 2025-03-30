@@ -115,30 +115,17 @@ class _OrderListPageState extends State<OrderListPage> {
   Widget _buildOrderCard(DocumentSnapshot orderDoc, {required String status}) {
     final data = orderDoc.data() as Map<String, dynamic>;
     final String orderId = orderDoc.id;
-
-    // The order doc has "buyerId" but not "buyerName".
     final String buyerId = data['buyerId'] ?? "unknown";
     final String location = data['location'] ?? "Unknown";
     final String deliveryType = data['delivery'] ?? "pickup";
-
-    // If you store "cartItems" and want the first product image
-    String productImage = "assets/placeholder.png";
-    if (data.containsKey("cartItems") &&
-        data["cartItems"] is List &&
-        (data["cartItems"] as List).isNotEmpty) {
-      final firstItem = (data["cartItems"] as List).first;
-      if (firstItem is Map && firstItem["image"] != null) {
-        productImage = firstItem["image"];
-      }
-    }
+    final String productImage = (data["cartItems"] as List?)?.first["image"] ?? "assets/placeholder.png";
 
     return FutureBuilder<DocumentSnapshot>(
       future: _firestore.collection('users').doc(buyerId).get(),
       builder: (context, snapshot) {
-        String buyerName = "Unknown";
-        if (snapshot.hasData && snapshot.data!.exists) {
-          buyerName = snapshot.data!.get('username') ?? "Unknown";
-        }
+        final buyerName = snapshot.hasData && snapshot.data!.exists
+            ? snapshot.data!.get('username') ?? "Unknown"
+            : "Unknown";
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 5),

@@ -113,7 +113,7 @@ class _PlantCareHomePageState extends State<PlantCareHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Plant Care Advisor"),
+        title: const Text("Plant Care AI"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

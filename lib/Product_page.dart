@@ -18,17 +18,17 @@ class _ProductPageState extends State<ProductPage> {
   // Map to store quantity for each product (by index).
   final Map<int, int> _quantities = {};
 
+  // Map to store unit prices for products.
+  final Map<String, int> _unitPrices = {
+    "onion": 9, // 500 gms for ₹9
+    "tomato": 10, // 500 gms for ₹10
+  };
+
   // Helper to determine unit price based on product name.
   int _getUnitPrice(String productName, dynamic firestorePrice) {
-    if (productName.toLowerCase() == "onion") {
-      // 500 gms for ₹9
-      return 9;
-    } else if (productName.toLowerCase() == "tomato") {
-      // 500 gms for ₹10
-      return 10;
-    }
-    // Fallback to Firestore price or 0.
-    return int.tryParse(firestorePrice.toString()) ?? 0;
+    return _unitPrices[productName.toLowerCase()] ??
+        int.tryParse(firestorePrice.toString()) ??
+        0;
   }
 
   // Check if any product has quantity > 0.
