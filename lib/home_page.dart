@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'Product_page.dart';
 import 'login_page.dart';
 import 'dashboard_page.dart'; // Import the dashboard page
+import 'menu_page.dart'; // Import the MenuPage
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -62,11 +63,13 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.green.shade900,
-        leading: IconButton(
-          icon: Icon(Icons.menu, color: Colors.white), // Changed to menu icon
-          onPressed: () {
-            // Add functionality for menu icon if needed
-          },
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(Icons.menu, color: Colors.white),
+            onPressed: () {
+              Scaffold.of(context).openDrawer(); // Open the drawer
+            },
+          ),
         ),
         title: Row(
           children: [
@@ -87,6 +90,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+      drawer: MenuPage(), // Add the MenuPage as the drawer
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(

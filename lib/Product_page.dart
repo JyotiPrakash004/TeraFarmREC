@@ -120,8 +120,10 @@ class _ProductPageState extends State<ProductPage> {
             backgroundColor: Colors.green.shade900,
             title: Row(
               children: [
-                Image.asset("assets/terafarm_logo.png", height: 40),
-                const SizedBox(width: 10),
+                Transform.translate(
+                  offset: Offset(-40, 5), // Move the logo 40 pixels left and 5 pixels down
+                  child: Image.asset("assets/terafarm_logo.png", height: 40),
+                ),
               ],
             ),
             actions: [

@@ -22,7 +22,12 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   final TextEditingController phoneController =
       TextEditingController(); // ✅ Phone field
 
+  bool _isLoading = false; // Add a loading state
+
   void _registerUser() async {
+    setState(() {
+      _isLoading = true; // Show loading indicator
+    });
     try {
       // Create user in Firebase Authentication
       UserCredential userCredential = await _auth
@@ -48,82 +53,101 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    } finally {
+      setState(() {
+        _isLoading = false; // Hide loading indicator
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/create_account_bg.png"),
-            fit: BoxFit.cover,
-          ),
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Hello!",
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+      backgroundColor: Colors.transparent, // ✅ Ensure background is transparent
+      body: SafeArea( // ✅ Add SafeArea to avoid overlapping with system UI
+        child: SingleChildScrollView( // ✅ Wrap with SingleChildScrollView
+          child: Container(
+            width: double.infinity,
+            height: MediaQuery.of(context).size.height, // ✅ Adjust height dynamically
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.3),
+              image: DecorationImage(
+                image: AssetImage("assets/create_account_bg.png"),
+                fit: BoxFit.cover,
               ),
             ),
-            Text(
-              "Create an Account",
-              style: TextStyle(fontSize: 22, color: Colors.orangeAccent),
-            ),
-            SizedBox(height: 20),
-
-            _buildTextField("Username", usernameController), // ✅ Username field
-            _buildTextField("Email Address", emailController),
-            _buildTextField(
-              "Phone Number",
-              phoneController,
-            ), // ✅ Phone number field
-            _buildTextField("Password", passwordController, isPassword: true),
-
-            SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                padding: EdgeInsets.symmetric(vertical: 15),
-              ),
-              onPressed: _registerUser,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Create an account",
-                    style: TextStyle(fontSize: 18, color: Colors.white),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Hello!",
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                  SizedBox(width: 10),
-                  Icon(Icons.arrow_forward, color: Colors.white),
-                ],
-              ),
-            ),
-            SizedBox(height: 10),
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginPage()),
-                  );
-                },
-                child: Text(
-                  "Already have an account? Login",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
-              ),
+                Text(
+                  "Create an Account",
+                  style: TextStyle(fontSize: 22, color: Colors.orangeAccent),
+                ),
+                SizedBox(height: 20),
+
+                _buildTextField("Username", usernameController), // ✅ Username field
+                _buildTextField("Email Address", emailController),
+                _buildTextField(
+                  "Phone Number",
+                  phoneController,
+                ), // ✅ Phone number field
+                _buildTextField("Password", passwordController, isPassword: true),
+
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: EdgeInsets.symmetric(vertical: 15),
+                  ),
+                  onPressed: _isLoading ? null : _registerUser, // Disable button when loading
+                  child: _isLoading
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Create an account",
+                              style: TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                            SizedBox(width: 10),
+                            Icon(Icons.arrow_forward, color: Colors.white),
+                          ],
+                        ),
+                ),
+                SizedBox(height: 10),
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginPage()),
+                      );
+                    },
+                    child: Text(
+                      "Already have an account? Login",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

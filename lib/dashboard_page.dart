@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'plant_disease_detection_page.dart';
 import 'add_product_page.dart';
 import 'order_list_page.dart';
 import 'list_farm_page.dart';
@@ -8,6 +9,7 @@ import 'login_page.dart';
 import 'home_page.dart'; 
 import 'edit_farm_page.dart';
 import 'chatbot_page.dart'; // <-- Added import for ChatbotPage
+import 'menu_page.dart'; // <-- Added import for MenuPage
 
 class SellerDashboard extends StatefulWidget {
   const SellerDashboard({super.key});
@@ -62,10 +64,16 @@ class _SellerDashboardState extends State<SellerDashboard> {
         automaticallyImplyLeading: false, // Removed the default back button
         backgroundColor: Colors.green.shade900, // Updated to match HomePage AppBar color
         elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(Icons.menu, color: Colors.white),
+            onPressed: () {
+              Scaffold.of(context).openDrawer(); // Open the drawer
+            },
+          ),
+        ),
         title: Row(
-          mainAxisAlignment: MainAxisAlignment.start, // Left align the title content
           children: [
-            Icon(Icons.menu, color: Colors.white),
             SizedBox(width: 10),
             Text(
               "Dashboard",
@@ -80,6 +88,12 @@ class _SellerDashboardState extends State<SellerDashboard> {
             onPressed: logout,
           ),
         ],
+      ),
+      drawer: Drawer(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.5, // Set drawer width to half the screen
+          child: MenuPage(),
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -310,6 +324,26 @@ class _SellerDashboardState extends State<SellerDashboard> {
                 ),
                 child: Text(
                   "Buy Seeds",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => TeradocApp()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade800,
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  "Plant Disease Detection",
                   style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),

@@ -97,7 +97,7 @@ class _LandingPageState extends State<LandingPage> {
               // Shift terafarm_logo.png horizontally (further to the right), now bigger
               Center(
                 child: Transform.translate(
-                  offset: const Offset(20, 0),
+                  offset: const Offset(10, 0),
                   child: Image.asset(
                     "assets/terafarm_logo.png",
                     width: 250,
