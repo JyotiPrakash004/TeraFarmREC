@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
-void main() {
-  runApp(const TeradocApp());
-}
 
 class TeradocApp extends StatelessWidget {
   const TeradocApp({super.key});
@@ -86,7 +83,7 @@ class _PlantHealthScreenState extends State<PlantHealthScreen> {
 
       final response = await _model.generateContent([content]);
 
-      final generatedText = response.text as String? ??
+      final generatedText = response.text ??
           response.candidates[0].content as String? ??
           '';
       // Remove any asterisks and trim the text.

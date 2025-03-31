@@ -20,7 +20,7 @@ class SellerDashboard extends StatefulWidget {
 
 class _SellerDashboardState extends State<SellerDashboard> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore_firestore = FirebaseFirestore.instance;
   double earnings = 5000.0;
 
   // Set default selected index to 1 (Farm)
