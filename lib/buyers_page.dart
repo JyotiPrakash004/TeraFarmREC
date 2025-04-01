@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'Product_page.dart';
-import 'login_page.dart';
 import 'home_page.dart'; // Import the dashboard page
 import 'menu_page.dart'; // Import the MenuPage
-import 'account_page.dart';
 import 'cart_page.dart'; // Import the CartPage
 import 'community_page.dart'; // Import the CommunityPage
 import 'shop_page.dart'; // Import ShopPage
@@ -26,14 +23,6 @@ class _BuyersPageState extends State<BuyersPage> {
     {"name": "Beans", "image": "assets/beans.png"},
     {"name": "Greens", "image": "assets/greens.png"},
   ];
-
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
-    );
-  }
 
   void _onCategorySelected(String category) {
     print("Filtering farms by: $category");
