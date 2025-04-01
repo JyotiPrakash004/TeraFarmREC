@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:terafarm/buyers_page.dart';
 import 'package:terafarm/home_page.dart';
-import 'account_page.dart';
 import 'shop_page.dart'; // Import ShopPage
 
 class CommunityPage extends StatelessWidget {

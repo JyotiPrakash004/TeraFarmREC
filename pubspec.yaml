@@ -42,6 +42,7 @@ dependencies:
   permission_handler: ^11.4.0
   http: ^1.1.0
   google_generative_ai: ^0.4.6-dev
+  fl_chart: ^0.70.0
   
 
 dev_dependencies:
