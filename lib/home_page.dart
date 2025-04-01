@@ -1,258 +1,533 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'Product_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:terafarm/community_page.dart';
+import 'plant_disease_detection_page.dart';
+import 'add_product_page.dart';
+import 'order_list_page.dart';
+import 'list_farm_page.dart';
 import 'login_page.dart';
-import 'dashboard_page.dart'; // Import the dashboard page
-import 'menu_page.dart'; // Import the MenuPage
+import 'edit_farm_page.dart';
+import 'chatbot_page.dart'; // <-- Added import for ChatbotPage
+import 'menu_page.dart'; // <-- Added import for MenuPage
+import 'recommendation_ai_page.dart'; // <-- Added import for RecommendationAIPage
+import 'account_page.dart'; // <-- Added import for AccountPage
+import 'buyers_page.dart'; // <-- Import BuyersPage
+import 'shop_page.dart'; // <-- Import the new ShopPage
 
 class HomePage extends StatefulWidget {
+  // Changed class name
   const HomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  _HomePageState createState() => _HomePageState(); // Updated state class name
 }
 
 class _HomePageState extends State<HomePage> {
-  final List<Map<String, String>> categories = [
-    {"name": "Onion", "image": "assets/onion.png"},
-    {"name": "Tomato", "image": "assets/tomato.png"},
-    {"name": "Beans", "image": "assets/beans.png"},
-    {"name": "Greens", "image": "assets/greens.png"},
-  ];
+  // Changed state class name
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore_firestore = FirebaseFirestore.instance;
+  double earnings = 5000.0;
 
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
+  // Set default selected index to 0 (Home)
+  int _selectedIndex = 0;
+
+  // Logout function that signs out and navigates to the login page
+  void logout() async {
+    await _auth.signOut();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => LoginPage()),
     );
   }
 
-  void _onCategorySelected(String category) {
-    print("Filtering farms by: $category");
+  // Bottom navigation tap handler
+  void _onNavItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index; // Update selected index based on tapped item
+    });
+
+    if (index == 0) {
+      // Already on HomePage (Home), so do nothing.
+    } else if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => CommunityPage()),
+      );
+    } else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => BuyersPage()),
+      );
+    } else if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ShopPage(),
+        ), // Navigate to ShopPage
+      );
+    }
   }
 
-  void _onFarmSelected(DocumentSnapshot farmDoc) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ProductPage(farmId: farmDoc.id),
+  @override
+  Widget build(BuildContext context) {
+    String sellerId = _auth.currentUser!.uid;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Removed the default back button
+        backgroundColor:
+            Colors.green.shade900, // Updated to match HomePage AppBar color
+        elevation: 0,
+        leading: Builder(
+          builder:
+              (context) => IconButton(
+                icon: Icon(Icons.menu, color: Colors.white),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer(); // Open the drawer
+                },
+              ),
+        ),
+        title: Row(
+          children: [
+            SizedBox(width: 10),
+            Text(
+              "Dashboard",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+      drawer: Drawer(
+        child: Container(
+          width:
+              MediaQuery.of(context).size.width *
+              0.5, // Set drawer width to half the screen
+          child: MenuPage(),
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex, // Update selected index
+        selectedItemColor: Colors.purple, // Selected icon color
+        unselectedItemColor: Colors.grey, // Unselected icon color
+        onTap: _onNavItemTapped,
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.apartment), // Community icon
+            label: 'Community',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag), // Buy icon
+            label: 'Buy',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.store), // Shop icon
+            label: 'Shop',
+          ),
+        ],
+      ),
+      // Updated FloatingActionButton with custom icon for plant care
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.green.shade800,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PlantCareApp()),
+          );
+        },
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(Icons.eco, color: Colors.white, size: 28), // Leaf icon
+          ],
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(height: 10),
+              Text(
+                "Total Earnings: Rs.${earnings.toStringAsFixed(2)}",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Container(
+                height: 150,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(child: Text("Bar Chart Placeholder")),
+              ),
+              SizedBox(height: 20),
+              // Centered dashboard buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Column(
+                    children: [
+                      _buildDashboardButton("List a Farm", () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ListFarmPage(),
+                          ),
+                        );
+                      }),
+                      SizedBox(height: 10),
+                      _buildDashboardButton("List a Produce", () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddProductPage(),
+                          ),
+                        );
+                      }),
+                      SizedBox(height: 10),
+                      _buildDashboardButton("Orders", () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OrderListPage(),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              // "Your Farm" heading
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Your Farm",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              SizedBox(height: 10),
+              // Display the farm created by this seller
+              Center(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('farms')
+                          .where('sellerId', isEqualTo: sellerId)
+                          .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return SizedBox();
+                    final farms = snapshot.data!.docs;
+                    if (farms.isEmpty)
+                      return Text("No farm registered by you.");
+
+                    final farm = farms.first;
+                    return ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditFarmPage(farmId: farm.id),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 45, 126, 48),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            farm['farmName'] ?? "Your Farm",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                          SizedBox(width: 10),
+                          Icon(Icons.edit, color: Colors.white),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 20),
+              // Product Listings Table
+              Container(
+                width: 300,
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.green.shade800),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Product Listings",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    StreamBuilder<QuerySnapshot>(
+                      stream:
+                          FirebaseFirestore.instance
+                              .collection('farms')
+                              .where('sellerId', isEqualTo: sellerId)
+                              .snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return SizedBox();
+                        final farmDocs = snapshot.data!.docs;
+                        if (farmDocs.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text("No products found."),
+                          );
+                        }
+
+                        final List<DataRow> allRows = [];
+                        int rowIndex = 1;
+                        for (var doc in farmDocs) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final products = data['products'] as List? ?? [];
+                          for (int i = 0; i < products.length; i++) {
+                            final product = products[i] as Map<String, dynamic>;
+                            final cropName = product['cropName'] ?? 'N/A';
+                            final stock = product['stock in kgs'] ?? '0';
+                            final price = product['pricePerKg'] ?? 'N/A';
+
+                            allRows.add(
+                              DataRow(
+                                cells: [
+                                  DataCell(Text(rowIndex.toString())),
+                                  DataCell(Text(cropName)),
+                                  DataCell(Text("$stock Kg")),
+                                  DataCell(Text("Rs. $price")),
+                                ],
+                              ),
+                            );
+                            rowIndex++;
+                          }
+                        }
+
+                        if (allRows.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text("No products found."),
+                          );
+                        }
+
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            columns: [
+                              DataColumn(label: Text("#")),
+                              DataColumn(label: Text("Crop")),
+                              DataColumn(label: Text("Stock")),
+                              DataColumn(label: Text("Price per Kg")),
+                            ],
+                            rows: allRows,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 20),
+              // BUY SEEDS BUTTON
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => BuySeedsPage()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade800,
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  "Buy Seeds",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => TeradocApp()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade800,
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  "Plant Disease Detection",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecommendationService(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade800,
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  "Recommendation AI",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  int _selectedIndex = 0;
+  Widget _buildDashboardButton(String text, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.green.shade800,
+        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Text(text, style: TextStyle(fontSize: 16, color: Colors.white)),
+    );
+  }
+}
 
-  void _onNavItemTapped(int index) {
-    if (index == 1) {
-      // Navigate to the dashboard when "Farm" is pressed
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => SellerDashboard()),
+class BuySeedsPage extends StatefulWidget {
+  const BuySeedsPage({super.key});
+
+  @override
+  _BuySeedsPageState createState() => _BuySeedsPageState();
+}
+
+class _BuySeedsPageState extends State<BuySeedsPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _seedNameController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController();
+
+  void _orderSeeds() {
+    if (_formKey.currentState!.validate()) {
+      final seedName = _seedNameController.text;
+      final quantity = int.parse(_quantityController.text);
+
+      // Simulate order placement (replace with actual logic as needed)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Order placed for $quantity Kg of $seedName")),
       );
+
+      // Clear the form
+      _seedNameController.clear();
+      _quantityController.clear();
     }
-    setState(() {
-      _selectedIndex = index;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.green.shade900,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: Icon(Icons.menu, color: Colors.white),
-            onPressed: () {
-              Scaffold.of(context).openDrawer(); // Open the drawer
-            },
-          ),
-        ),
-        title: Row(
-          children: [
-            Transform.translate(
-              offset: Offset(-40, 5), // Move the logo 40 pixels left and 5 pixels down
-              child: Image.asset("assets/terafarm_logo.png", height: 40),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.shopping_cart, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
+        title: Text("Buy Seeds"),
+        backgroundColor: Colors.green.shade800,
       ),
-      drawer: MenuPage(), // Add the MenuPage as the drawer
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                hintText: "Search",
-                prefixIcon: Icon(Icons.search, color: Colors.grey),
-                filled: true,
-                fillColor: Colors.grey.shade200,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Order Seeds",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 20),
+              TextFormField(
+                controller: _seedNameController,
+                decoration: InputDecoration(
+                  labelText: "Seed Name",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Please enter the seed name";
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              TextFormField(
+                controller: _quantityController,
+                decoration: InputDecoration(
+                  labelText: "Quantity (in Kg)",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Please enter the quantity";
+                  }
+                  if (int.tryParse(value) == null || int.parse(value) <= 0) {
+                    return "Please enter a valid quantity";
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _orderSeeds,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade800,
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  "Place Order",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
-            ),
-            SizedBox(height: 20),
-            Text(
-              "Eat what makes you healthy",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            SizedBox(
-              height: 80,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: categories.map((category) {
-                  return GestureDetector(
-                    onTap: () => _onCategorySelected(category["name"]!),
-                    child: Column(
-                      children: [
-                        Image.asset(category["image"]!, width: 50),
-                        SizedBox(height: 5),
-                        Text(category["name"]!),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Farms around you",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: Icon(Icons.filter_list, color: Colors.grey.shade700),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('farms')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Padding(
-                    padding: EdgeInsets.only(top: 20),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final farmDocs = snapshot.data!.docs;
-
-                if (farmDocs.isEmpty) {
-                  return Padding(
-                    padding: EdgeInsets.only(top: 20),
-                    child: Text("No farms found."),
-                  );
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: farmDocs.length,
-                  itemBuilder: (context, index) {
-                    final farm = farmDocs[index].data() as Map<String, dynamic>;
-                    final farmName = farm["farmName"] ?? "Unnamed Farm";
-                    final description = farm["farmDescription"] ?? "No description";
-                    final imageUrl = farm["imageUrl"] ?? "assets/sample_farm.png";
-                    final scale = farm["scale"] ?? "N/A";
-                    final rating = farm["rating"] ?? 4.0;
-
-                    return GestureDetector(
-                      onTap: () => _onFarmSelected(farmDocs[index]),
-                      child: Card(
-                        margin: EdgeInsets.only(bottom: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
-                              child: imageUrl.startsWith("assets/")
-                                  ? Image.asset(
-                                      imageUrl,
-                                      height: 150,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Image.network(
-                                      imageUrl,
-                                      height: 150,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                    ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(10.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    farmName,
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  SizedBox(height: 5),
-                                  Text(description, style: TextStyle(color: Colors.grey.shade700)),
-                                  SizedBox(height: 5),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text("Scale: $scale"),
-                                      Row(
-                                        children: [
-                                          Icon(Icons.star, color: Colors.orange, size: 16),
-                                          Text(rating.toString()),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.purple, // Selected (Farm) icon is purple
-        unselectedItemColor: Colors.grey,
-        onTap: _onNavItemTapped,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Account'),
-        ],
       ),
     );
   }

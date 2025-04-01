@@ -35,8 +35,9 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(builder: (context) => HomePage()),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login Failed: ${e.toString()}")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Login Failed: ${e.toString()}")));
     } finally {
       setState(() {
         _isLoading = false; // Hide loading indicator
@@ -47,7 +48,8 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true, // Allow layout to adjust when keyboard appears
+      resizeToAvoidBottomInset:
+          true, // Allow layout to adjust when keyboard appears
       backgroundColor: Colors.transparent, // Ensure transparency
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -55,7 +57,9 @@ class _LoginPageState extends State<LoginPage> {
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3), // Semi-transparent white overlay
+              color: Colors.white.withOpacity(
+                0.3,
+              ), // Semi-transparent white overlay
               image: DecorationImage(
                 image: AssetImage("assets/login_bg.png"),
                 fit: BoxFit.cover,
@@ -70,11 +74,15 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 Expanded(
                   child: AnimatedContainer(
-                    duration: Duration(milliseconds: 300), // Smooth animation duration
+                    duration: Duration(
+                      milliseconds: 300,
+                    ), // Smooth animation duration
                     curve: Curves.easeInOut, // Smooth easing curve
                     padding: EdgeInsets.only(
                       top: 40,
-                      bottom: MediaQuery.of(context).viewInsets.bottom + 20, // Adjust for keyboard
+                      bottom:
+                          MediaQuery.of(context).viewInsets.bottom +
+                          20, // Adjust for keyboard
                     ),
                     child: SingleChildScrollView(
                       child: Column(
@@ -88,16 +96,29 @@ class _LoginPageState extends State<LoginPage> {
                               color: Colors.white,
                             ),
                           ),
-                          SizedBox(height: 10), // Add spacing between "Hello!" and "Login"
+                          SizedBox(
+                            height: 10,
+                          ), // Add spacing between "Hello!" and "Login"
                           Text(
                             "Login",
-                            style: TextStyle(fontSize: 22, color: Colors.orangeAccent),
+                            style: TextStyle(
+                              fontSize: 22,
+                              color: Colors.orangeAccent,
+                            ),
                           ),
-                          SizedBox(height: 30), // Add spacing before the text fields
+                          SizedBox(
+                            height: 30,
+                          ), // Add spacing before the text fields
 
                           _buildTextField("Email Address", emailController),
-                          SizedBox(height: 15), // Add spacing between the text fields
-                          _buildTextField("Password", passwordController, isPassword: true),
+                          SizedBox(
+                            height: 15,
+                          ), // Add spacing between the text fields
+                          _buildTextField(
+                            "Password",
+                            passwordController,
+                            isPassword: true,
+                          ),
                           SizedBox(height: 20),
                         ],
                       ),
@@ -111,32 +132,36 @@ class _LoginPageState extends State<LoginPage> {
                     _isLoading
                         ? CircularProgressIndicator() // Show loading indicator
                         : ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              padding: EdgeInsets.symmetric(vertical: 15),
-                            ),
-                            onPressed: () => _loginUser(context),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Login",
-                                  style: TextStyle(fontSize: 18, color: Colors.white),
-                                ),
-                                SizedBox(width: 10),
-                                Icon(Icons.arrow_forward, color: Colors.white),
-                              ],
-                            ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            padding: EdgeInsets.symmetric(vertical: 15),
                           ),
+                          onPressed: () => _loginUser(context),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Login",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Icon(Icons.arrow_forward, color: Colors.white),
+                            ],
+                          ),
+                        ),
                     SizedBox(height: 20),
                     Center(
                       child: TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CreateAccountPage(),
-                          ),
-                        ),
+                        onPressed:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreateAccountPage(),
+                              ),
+                            ),
                         child: Text(
                           "Don't have an account? Sign up",
                           style: TextStyle(color: Colors.white),
