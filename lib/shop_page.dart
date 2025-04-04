@@ -21,9 +21,9 @@ class _ShopPageState extends State<ShopPage> {
 
   final List<Map<String, dynamic>> seeds = [
     {"name": "Tomato seeds", "image": "assets/tomato_seeds.png", "quantity": 0},
-    {"name": "Beans seeds", "image": "assets/beans_seeds.png", "quantity": 0},
-    {"name": "Apple seeds", "image": "assets/apple_seeds.png", "quantity": 0},
-    {"name": "Grape seeds", "image": "assets/grape_seeds.png", "quantity": 0},
+    {"name": "Beans seeds", "image": "assets/beans.png", "quantity": 0},
+    {"name": "Apple seeds", "image": "assets/apple.png", "quantity": 0},
+    {"name": "Grape seeds", "image": "assets/grape.png", "quantity": 0},
   ];
 
   // Function to update quantity
