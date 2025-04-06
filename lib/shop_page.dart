@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'community_page.dart';
-import 'buyers_page.dart';
+import 'dashboard_page.dart';
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key});
@@ -11,18 +11,18 @@ class ShopPage extends StatefulWidget {
 }
 
 class _ShopPageState extends State<ShopPage> {
-  int _selectedIndex = 3; // Default index for Shop page
+  final int _selectedIndex = 3; // Default index for Shop page
 
   // Inventory Data
   final List<Map<String, dynamic>> farmingTools = [
-    {"name": "Pots", "image": "assets/pots.png", "quantity": 0},
-    {"name": "Grow Bags", "image": "assets/grow_bags.png", "quantity": 0},
+    {"name": "Pots", "image": "assets/pot.png", "quantity": 0},
+    {"name": "Grow Bags", "image": "assets/growing_bags.png", "quantity": 0},
   ];
 
   final List<Map<String, dynamic>> seeds = [
-    {"name": "Tomato seeds", "image": "assets/tomato_seeds.png", "quantity": 0},
+    {"name": "Tomato seeds", "image": "assets/tomato_seed.png", "quantity": 0},
     {"name": "Beans seeds", "image": "assets/beans.png", "quantity": 0},
-    {"name": "Apple seeds", "image": "assets/apple.png", "quantity": 0},
+    {"name": "Apple seeds", "image": "assets/Apple.png", "quantity": 0},
     {"name": "Grape seeds", "image": "assets/grape.png", "quantity": 0},
   ];
 
@@ -133,7 +133,7 @@ class _ShopPageState extends State<ShopPage> {
     } else if (index == 2) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => BuyersPage()),
+        MaterialPageRoute(builder: (context) => DashboardPage()),
       );
     }
   }
@@ -197,8 +197,9 @@ class _ShopPageState extends State<ShopPage> {
               ? FloatingActionButton.extended(
                 backgroundColor: Colors.green,
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Proceeding to Checkout...")),
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => DashboardPage()),
                   );
                 },
                 label: const Text("Buy Now"),
@@ -216,7 +217,7 @@ class _ShopPageState extends State<ShopPage> {
             icon: Icon(Icons.apartment),
             label: 'Community',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag), label: 'Buy'),
+          BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'),
           BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
         ],
       ),

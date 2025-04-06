@@ -33,9 +33,10 @@ class RecommendationServiceApi {
 }
 
 class RecommendationService extends StatefulWidget {
+  @override
   final Key? key;
 
-  RecommendationService({this.key}) : super(key: key);
+  const RecommendationService({this.key}) : super(key: key);
   @override
   _RecommendationServiceState createState() => _RecommendationServiceState();
 }
@@ -107,6 +108,8 @@ class _RecommendationServiceState extends State<RecommendationService> {
 }
 
 class RecommendationForm extends StatefulWidget {
+  const RecommendationForm({super.key});
+
   @override
   _RecommendationFormState createState() => _RecommendationFormState();
 }

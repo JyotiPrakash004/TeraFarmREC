@@ -15,10 +15,10 @@ class EditFarmPage extends StatefulWidget {
 
 class _EditFarmPageState extends State<EditFarmPage> {
   final _formKey = GlobalKey<FormState>();
-  TextEditingController _nameController = TextEditingController();
-  TextEditingController _locationController = TextEditingController();
-  TextEditingController _contactController = TextEditingController();
-  TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _contactController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   String _scaleOption = "Small Scale"; // Default scale selection
   File? _selectedImage;
   String _imageUrl = "";
