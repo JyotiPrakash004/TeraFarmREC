@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:terafarm/cart_page.dart';
-import 'package:terafarm/community_page.dart';
+import 'cart_page.dart';
+import 'community_page.dart';
 import 'add_product_page.dart';
 import 'order_list_page.dart';
 import 'list_farm_page.dart';
@@ -127,7 +127,10 @@ class _DashboardPageState extends State<DashboardPage> {
           icon: Icon(Icons.apartment),
           label: 'Community',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'), // Changed icon to 'agriculture'
+        BottomNavigationBarItem(
+          icon: Icon(Icons.agriculture),
+          label: 'Farm',
+        ), // Changed icon to 'agriculture'
         BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
       ],
     );
@@ -139,10 +142,16 @@ class _DashboardPageState extends State<DashboardPage> {
       onPressed: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AIPage()), // Navigate to AIPage
+          MaterialPageRoute(
+            builder: (context) => const AIPage(),
+          ), // Navigate to AIPage
         );
       },
-      child: const Icon(Icons.smart_toy, color: Colors.white, size: 28), // AI icon
+      child: const Icon(
+        Icons.smart_toy,
+        color: Colors.white,
+        size: 28,
+      ), // AI icon
     );
   }
 
@@ -153,7 +162,9 @@ class _DashboardPageState extends State<DashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 20), // Added space between AppBar and Farm Dashboard
+            const SizedBox(
+              height: 20,
+            ), // Added space between AppBar and Farm Dashboard
             _buildDashboardHeader(),
             const SizedBox(height: 20), // Added space between header and box
             _buildBarChart(sellerId), // Moved bar chart upwards
@@ -275,7 +286,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     toY: entry.value.toDouble(),
                     color: Colors.blue, // Changed to dark blue
                     width: 12, // Reduced bar width to create spacing
-                    borderRadius: BorderRadius.circular(4), // Slightly curved edges
+                    borderRadius: BorderRadius.circular(
+                      4,
+                    ), // Slightly curved edges
                   ),
                 ],
               );
@@ -286,11 +299,18 @@ class _DashboardPageState extends State<DashboardPage> {
           padding: const EdgeInsets.all(10), // Simplified padding
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(color: Colors.green.shade800, width: 1.5), // Slightly thinner border
-            borderRadius: BorderRadius.circular(8), // Slightly smaller rounded corners
+            border: Border.all(
+              color: Colors.green.shade800,
+              width: 1.5,
+            ), // Slightly thinner border
+            borderRadius: BorderRadius.circular(
+              8,
+            ), // Slightly smaller rounded corners
           ),
           child: Padding(
-            padding: const EdgeInsets.only(top: 30.0), // Added padding to move the graph slightly down
+            padding: const EdgeInsets.only(
+              top: 30.0,
+            ), // Added padding to move the graph slightly down
             child: BarChart(
               BarChartData(
                 barGroups: barGroups,
@@ -314,11 +334,15 @@ class _DashboardPageState extends State<DashboardPage> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 50, // Increased reserved size for visibility
+                      reservedSize:
+                          50, // Increased reserved size for visibility
                       getTitlesWidget: (value, meta) {
-                        if (value.toInt() % 2 != 0) return const SizedBox(); // Show labels for even values only
+                        if (value.toInt() % 2 != 0)
+                          return const SizedBox(); // Show labels for even values only
                         return Padding(
-                          padding: const EdgeInsets.only(top: 8.0), // Adjusted padding
+                          padding: const EdgeInsets.only(
+                            top: 8.0,
+                          ), // Adjusted padding
                           child: Text(
                             value.toInt().toString(),
                             style: const TextStyle(fontSize: 10),
@@ -327,7 +351,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       },
                     ),
                   ),
-                  topTitles: AxisTitles( // Disable the upper x-axis
+                  topTitles: AxisTitles(
+                    // Disable the upper x-axis
                     sideTitles: SideTitles(showTitles: false),
                   ),
                 ),
@@ -384,7 +409,10 @@ class _DashboardPageState extends State<DashboardPage> {
             children: [
               const Text(
                 "Watering",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), // Increased size and made bold
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ), // Increased size and made bold
               ),
               Row(
                 children: [
@@ -394,7 +422,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Checkbox(value: false, onChanged: (value) {}),
                     ],
                   ),
-                  const SizedBox(width: 20), // Added space between the two columns
+                  const SizedBox(
+                    width: 20,
+                  ), // Added space between the two columns
                   Column(
                     children: [
                       const Text("At 5:30 PM"),
@@ -598,14 +628,14 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildActionButtons() {
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-      ],
-    );
+    return Column(children: [const SizedBox(height: 20)]);
   }
 
-  Widget _buildDashboardButton(String text, VoidCallback onPressed, Color color) {
+  Widget _buildDashboardButton(
+    String text,
+    VoidCallback onPressed,
+    Color color,
+  ) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(

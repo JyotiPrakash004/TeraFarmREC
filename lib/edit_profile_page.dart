@@ -12,7 +12,8 @@ class EditProfilePage extends StatefulWidget {
   _EditProfilePageState createState() => _EditProfilePageState();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
+class _EditProfilePageState extends State<EditProfilePage>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -22,32 +23,44 @@ class _EditProfilePageState extends State<EditProfilePage> {
   File? _selectedImage;
   String? _imageUrl;
 
+  bool _animate = false;
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _animate = true);
+    });
   }
 
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
       final userData = userDoc.data() ?? {};
 
       // Fetch farm name if the user has a farm
-      final farmQuery = await FirebaseFirestore.instance
-          .collection('farms')
-          .where('sellerId', isEqualTo: user.uid)
-          .limit(1)
-          .get();
-      final farmName = farmQuery.docs.isNotEmpty ? farmQuery.docs.first['farmName'] : null;
+      final farmQuery =
+          await FirebaseFirestore.instance
+              .collection('farms')
+              .where('sellerId', isEqualTo: user.uid)
+              .limit(1)
+              .get();
+      final farmName =
+          farmQuery.docs.isNotEmpty ? farmQuery.docs.first['farmName'] : null;
 
       setState(() {
         _usernameController.text = userData['username'] ?? '';
         _emailController.text = userData['email'] ?? '';
         _phoneController.text = userData['phone'] ?? '';
         _localityController.text = userData['locality'] ?? '';
-        _farmNameController.text = farmName ?? ''; // Set farm name if available
+        _farmNameController.text = farmName ?? '';
         _imageUrl = userData['profileImage'];
       });
     }
@@ -71,34 +84,34 @@ class _EditProfilePageState extends State<EditProfilePage> {
       String? imageUrl = _imageUrl;
 
       try {
-        // Upload new image if selected
         if (_selectedImage != null) {
-          final storageRef = FirebaseStorage.instance
-              .ref()
-              .child('profile_images/${user.uid}_profile_image.jpg');
+          final storageRef = FirebaseStorage.instance.ref().child(
+            'profile_images/${user.uid}_profile_image.jpg',
+          );
           final uploadTask = storageRef.putFile(_selectedImage!);
           final snapshot = await uploadTask.whenComplete(() => null);
           imageUrl = await snapshot.ref.getDownloadURL();
         }
 
-        // Update user data in Firestore
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'username': _usernameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'locality': _localityController.text.trim(),
-          'farmName': _farmNameController.text.trim(),
-          'profileImage': imageUrl,
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
+              'username': _usernameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'phone': _phoneController.text.trim(),
+              'locality': _localityController.text.trim(),
+              'profileImage': imageUrl,
+            });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Profile updated successfully!")),
+          const SnackBar(content: Text("Profile updated successfully!")),
         );
         Navigator.pop(context);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving profile: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error saving profile: $e")));
       }
     }
   }
@@ -111,7 +124,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         backgroundColor: const Color.fromARGB(255, 244, 143, 143),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -122,47 +135,86 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 50,
+              _animatedFadeSlide(
+                0,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.white,
+                      backgroundImage:
+                          _selectedImage != null
+                              ? FileImage(_selectedImage!)
+                              : (_imageUrl != null
+                                      ? NetworkImage(_imageUrl!)
+                                      : null)
+                                  as ImageProvider?,
+                      child:
+                          _selectedImage == null && _imageUrl == null
+                              ? const Icon(
+                                Icons.account_circle,
+                                size: 80,
+                                color: Colors.grey,
+                              )
+                              : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.white),
+                        onPressed: _pickImage,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              _animatedFadeSlide(
+                1,
+                child: _buildEditableField("Username", _usernameController),
+              ),
+              _animatedFadeSlide(
+                2,
+                child: _buildEditableField(
+                  "My email Address",
+                  _emailController,
+                ),
+              ),
+              _animatedFadeSlide(
+                3,
+                child: _buildEditableField("Phone number", _phoneController),
+              ),
+              _animatedFadeSlide(
+                4,
+                child: _buildEditableField("Locality", _localityController),
+              ),
+              _animatedFadeSlide(
+                5,
+                child: _buildEditableField(
+                  "My Farm's name",
+                  _farmNameController,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _animatedFadeSlide(
+                6,
+                child: ElevatedButton(
+                  onPressed: _saveProfile,
+                  style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    backgroundImage: _selectedImage != null
-                        ? FileImage(_selectedImage!)
-                        : (_imageUrl != null ? NetworkImage(_imageUrl!) : null) as ImageProvider?,
-                    child: _selectedImage == null && _imageUrl == null
-                        ? Icon(Icons.account_circle, size: 80, color: Colors.grey)
-                        : null,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: Icon(Icons.edit, color: Colors.white),
-                      onPressed: _pickImage,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 40,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: 20),
-              _buildEditableField("Username", _usernameController),
-              _buildEditableField("My email Address", _emailController),
-              _buildEditableField("Phone number", _phoneController),
-              _buildEditableField("Locality", _localityController),
-              _buildEditableField("My Farm's name", _farmNameController),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  child: const Text("Save"),
                 ),
-                child: Text("Save"),
               ),
             ],
           ),
@@ -175,20 +227,40 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.black, fontSize: 16)),
-        SizedBox(height: 5),
+        Text(label, style: const TextStyle(color: Colors.black, fontSize: 16)),
+        const SizedBox(height: 5),
         TextFormField(
           controller: controller,
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            suffixIcon: Icon(Icons.edit, color: Colors.black),
+            suffixIcon: const Icon(Icons.edit, color: Colors.black),
           ),
-          validator: (value) => value == null || value.isEmpty ? "This field cannot be empty" : null,
+          validator:
+              (value) =>
+                  value == null || value.isEmpty
+                      ? "This field cannot be empty"
+                      : null,
         ),
-        SizedBox(height: 15),
+        const SizedBox(height: 15),
       ],
+    );
+  }
+
+  Widget _animatedFadeSlide(int index, {required Widget child}) {
+    return AnimatedSlide(
+      offset: _animate ? Offset.zero : const Offset(0, 0.3),
+      duration: Duration(milliseconds: 300 + (index * 100)),
+      curve: Curves.easeOut,
+      child: AnimatedOpacity(
+        duration: Duration(milliseconds: 300 + (index * 100)),
+        opacity: _animate ? 1 : 0,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6.0),
+          child: child,
+        ),
+      ),
     );
   }
 }

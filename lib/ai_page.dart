@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'plantcare_page.dart'; // Import the PlantCarePage
-import 'teradoc_page.dart'; // Import the TeraDocPage
-import 'recommendation_ai_page.dart'; // Import the RecommendationAIPage
+import 'plantcare_page.dart';
+import 'teradoc_page.dart';
+import 'recommendation_ai_page.dart';
 
 class AIPage extends StatelessWidget {
   const AIPage({super.key});
@@ -10,11 +10,8 @@ class AIPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "TeraAI",
-          style: TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white), // Set back button color to white
+        title: const Text("TeraAI", style: TextStyle(color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: Colors.green.shade800,
       ),
       body: Center(
@@ -28,17 +25,21 @@ class AIPage extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => const PlantCareApp()),
                 );
               },
-              icon: const Icon(Icons.local_florist, size: 24, color: Colors.white), // Set icon color to white
+              icon: const Icon(
+                Icons.local_florist,
+                size: 24,
+                color: Colors.white,
+              ),
               label: const Text(
                 "Tera Care AI",
-                style: TextStyle(color: Colors.white), // Set text color to white
+                style: TextStyle(color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size(200, 60), // Increase button size
-                backgroundColor: Colors.orange, // Set button color to orange
+                minimumSize: const Size(200, 60),
+                backgroundColor: Colors.orange,
               ),
             ),
-            const SizedBox(height: 20), // Adjust spacing
+            const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.push(
@@ -46,32 +47,38 @@ class AIPage extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => const TeradocApp()),
                 );
               },
-              icon: const Icon(Icons.medical_services, size: 24, color: Colors.white), // Set icon color to white
+              icon: const Icon(
+                Icons.medical_services,
+                size: 24,
+                color: Colors.white,
+              ),
               label: const Text(
                 "TeraDoc AI",
-                style: TextStyle(color: Colors.white), // Set text color to white
+                style: TextStyle(color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size(200, 60), // Increase button size
-                backgroundColor: Colors.orange, // Set button color to orange
+                minimumSize: const Size(200, 60),
+                backgroundColor: Colors.orange,
               ),
             ),
-            const SizedBox(height: 20), // Adjust spacing
+            const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => RecommendationService()),
+                  MaterialPageRoute(
+                    builder: (context) => RecommendationService(),
+                  ),
                 );
               },
-              icon: const Icon(Icons.recommend, size: 24, color: Colors.white), // Set icon color to white
+              icon: const Icon(Icons.recommend, size: 24, color: Colors.white),
               label: const Text(
                 "Tera Recommend AI",
-                style: TextStyle(color: Colors.white), // Set text color to white
+                style: TextStyle(color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size(200, 60), // Increase button size
-                backgroundColor: Colors.orange, // Set button color to orange
+                minimumSize: const Size(200, 60),
+                backgroundColor: Colors.orange,
               ),
             ),
           ],

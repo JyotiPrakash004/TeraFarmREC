@@ -4,53 +4,41 @@ import 'home_page.dart';
 import 'shop_page.dart';
 import 'leaderboard_page.dart';
 import 'colab_page.dart';
-import 'dashboard_page.dart'; // ✅ Add this line
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Community UI',
-      debugShowCheckedModeBanner: false,
-      home: const CommunityPage(),
-    );
-  }
-}
+import 'dashboard_page.dart';
+import 'cart_page.dart';
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage({super.key});
 
   @override
-  _CommunityPageState createState() => _CommunityPageState();
+  State<CommunityPage> createState() => _CommunityPageState();
 }
 
 class _CommunityPageState extends State<CommunityPage> {
-  int _selectedIndex = 1; // Default to Community tab
+  int _selectedIndex = 1;
 
   void _onNavItemTapped(int index) {
     if (index == _selectedIndex) return;
 
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-      );
-    } else if (index == 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardPage()), // ✅ Update navigation
-      );
-    } else if (index == 3) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ShopPage()),
-      );
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DashboardPage()),
+        );
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ShopPage()),
+        );
+        break;
     }
   }
 
@@ -58,12 +46,41 @@ class _CommunityPageState extends State<CommunityPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Community',
-          style: TextStyle(color: Colors.white), // ✅ Set text color to white
+        backgroundColor: Colors.green.shade900,
+        leading: Builder(
+          builder:
+              (context) => IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              ),
         ),
-        automaticallyImplyLeading: false, // ✅ Remove back button
-        backgroundColor: const Color(0xFF155C39), // Dark green
+        title: Row(
+          children: [
+            Transform.translate(
+              offset: const Offset(-40, 5),
+              child: Image.asset("assets/terafarm_logo.png", height: 40),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications, color: Colors.white),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.shopping_cart, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CartPage(cartItems: []),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -94,18 +111,21 @@ class _CommunityPageState extends State<CommunityPage> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF36D7B7),
-                      minimumSize: const Size(120, 120), // Equal dimensions
+                      backgroundColor: Colors.orange,
+                      minimumSize: const Size(120, 120),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16), // Curved edges
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
-                        Icon(Icons.leaderboard, size: 40), // Icon above
+                        Icon(Icons.leaderboard, size: 40, color: Colors.white),
                         SizedBox(height: 8),
-                        Text('Leaderboard'), // Text below
+                        Text(
+                          'Leaderboard',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ],
                     ),
                   ),
@@ -113,60 +133,16 @@ class _CommunityPageState extends State<CommunityPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CollaborationPage(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF36D7B7),
-                          minimumSize: const Size(120, 120), // Equal dimensions
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              16,
-                            ), // Curved edges
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.group, size: 40), // Icon above
-                            SizedBox(height: 8),
-                            Text('Collab'), // Text below
-                          ],
-                        ),
+                      _communityButton(
+                        label: 'Collab',
+                        icon: Icons.group,
+                        page: const ColabPage(),
                       ),
                       const SizedBox(width: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ForumPage(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF36D7B7),
-                          minimumSize: const Size(120, 120), // Equal dimensions
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              16,
-                            ), // Curved edges
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.forum, size: 40), // Icon above
-                            SizedBox(height: 8),
-                            Text('Forum'), // Text below
-                          ],
-                        ),
+                      _communityButton(
+                        label: 'Forum',
+                        icon: Icons.forum,
+                        page: const ForumPage(),
                       ),
                     ],
                   ),
@@ -187,33 +163,34 @@ class _CommunityPageState extends State<CommunityPage> {
             icon: Icon(Icons.apartment),
             label: 'Community',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.agriculture), // ✅ Change to farm icon
-            label: 'Farm', // ✅ Update label
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'),
           BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
         ],
       ),
     );
   }
-}
 
-class DummyPage extends StatelessWidget {
-  final String title;
-  const DummyPage({super.key, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: const Color(0xFF155C39),
+  Widget _communityButton({
+    required String label,
+    required IconData icon,
+    required Widget page,
+  }) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.orange,
+        minimumSize: const Size(120, 120),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
-      body: Center(
-        child: Text(
-          'This is the $title page',
-          style: const TextStyle(fontSize: 20),
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 40, color: Colors.white),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: Colors.white)),
+        ],
       ),
     );
   }

@@ -2,27 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
-import 'edit_profile_page.dart'; // Import the EditProfilePage
+import 'edit_profile_page.dart';
 
-class AccountPage extends StatelessWidget {
+class AccountPage extends StatefulWidget {
   const AccountPage({Key? key}) : super(key: key);
+
+  @override
+  State<AccountPage> createState() => _AccountPageState();
+}
+
+class _AccountPageState extends State<AccountPage>
+    with TickerProviderStateMixin {
+  bool _animate = false;
 
   Future<Map<String, dynamic>> _fetchUserDetails() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      final farmQuery = await FirebaseFirestore.instance
-          .collection('farms')
-          .where('sellerId', isEqualTo: user.uid)
-          .limit(1)
-          .get();
-
-      final farmName = farmQuery.docs.isNotEmpty ? farmQuery.docs.first['farmName'] : null;
-
-      return {
-        ...userDoc.data() ?? {},
-        'farmName': farmName ?? 'No farm registered',
-      };
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+      return userDoc.data() ?? {};
     }
     return {};
   }
@@ -31,86 +32,185 @@ class AccountPage extends StatelessWidget {
     await FirebaseAuth.instance.signOut();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
+      MaterialPageRoute(builder: (context) => const LoginPage()),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _animate = true);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 51, 99, 31),
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 51, 99, 31),
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: Colors.white,
       body: FutureBuilder<Map<String, dynamic>>(
         future: _fetchUserDetails(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text("Error loading account details."));
+            return const Center(child: Text("Error loading profile"));
           }
+
           final userDetails = snapshot.data ?? {};
+
           return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.white,
-                    backgroundImage: userDetails['profileImage'] != null
-                        ? NetworkImage(userDetails['profileImage'])
-                        : null,
-                    child: userDetails['profileImage'] == null
-                        ? Icon(Icons.account_circle, size: 80, color: Colors.red.shade300)
-                        : null,
-                  ),
-                  SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => EditProfilePage()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.red.shade300,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, size: 28),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                Center(
+                  child: Column(
+                    children: [
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 45,
+                            backgroundColor: Colors.grey[200],
+                            backgroundImage:
+                                userDetails['profileImage'] != null
+                                    ? NetworkImage(userDetails['profileImage'])
+                                    : null,
+                            child:
+                                userDetails['profileImage'] == null
+                                    ? const Icon(Icons.person, size: 50)
+                                    : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: CircleAvatar(
+                              radius: 14,
+                              backgroundColor: Colors.orange,
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => const EditProfilePage(),
+                                    ),
+                                  );
+                                },
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    child: Text("Edit profile"),
-                  ),
-                  SizedBox(height: 20),
-                  _buildTextField("Username", userDetails['username'] ?? "N/A"),
-                  _buildTextField("My email Address", userDetails['email'] ?? "N/A"),
-                  _buildTextField("Phone number", userDetails['phone'] ?? "N/A"),
-                  _buildTextField("Locality", userDetails['locality'] ?? "N/A"),
-                  _buildTextField("My Farm's name", userDetails['farmName'] ?? "No farm registered"),
-                  SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () => _logout(context),
-                    icon: Icon(Icons.power_settings_new, color: Colors.white),
-                    label: Text("Log out", style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 226, 90, 90),
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      const SizedBox(height: 10),
+                      Text(
+                        userDetails['username'] ?? 'User Name',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        "Buyer / Seller",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            child: const Text(
+                              "Lvl 20",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                LinearProgressIndicator(
+                                  value: 0.8,
+                                  backgroundColor: Colors.grey,
+                                  color: Colors.blue,
+                                  minHeight: 5,
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  "80/100 pts",
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 30),
+
+                _buildAnimatedTile(
+                  0,
+                  _infoTile(
+                    Icons.phone,
+                    userDetails['phone'] ?? '+91 00000 00000',
+                  ),
+                ),
+                _buildAnimatedTile(
+                  1,
+                  _infoTile(
+                    Icons.email_outlined,
+                    userDetails['email'] ?? 'example@email.com',
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                _buildAnimatedTile(
+                  2,
+                  _menuTile(Icons.favorite_border, 'My Orders'),
+                ),
+                _buildAnimatedTile(
+                  3,
+                  _menuTile(Icons.local_play_outlined, 'Badges'),
+                ),
+                _buildAnimatedTile(
+                  4,
+                  _menuTile(Icons.location_on_outlined, 'My Addresses'),
+                ),
+                _buildAnimatedTile(
+                  5,
+                  _menuTile(Icons.list_alt_rounded, 'My List'),
+                ),
+                _buildAnimatedTile(
+                  6,
+                  _menuTile(
+                    Icons.logout,
+                    'Logout',
+                    onTap: () => _logout(context),
+                    isLogout: true,
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -118,23 +218,49 @@ class AccountPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(color: Colors.white, fontSize: 16)),
-        SizedBox(height: 5),
-        TextField(
-          readOnly: true,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            hintText: value,
-          ),
+  Widget _buildAnimatedTile(int index, Widget child) {
+    return AnimatedSlide(
+      offset: _animate ? Offset.zero : const Offset(0, 0.3),
+      duration: Duration(milliseconds: 300 + (index * 100)),
+      curve: Curves.easeOut,
+      child: AnimatedOpacity(
+        duration: Duration(milliseconds: 300 + (index * 100)),
+        opacity: _animate ? 1 : 0,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6.0),
+          child: child,
         ),
-        SizedBox(height: 15),
+      ),
+    );
+  }
+
+  Widget _infoTile(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.deepPurple),
+        const SizedBox(width: 12),
+        Text(text, style: const TextStyle(fontSize: 16)),
       ],
+    );
+  }
+
+  Widget _menuTile(
+    IconData icon,
+    String label, {
+    VoidCallback? onTap,
+    bool isLogout = false,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: isLogout ? Colors.red : Colors.orange),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontSize: 16,
+          color: isLogout ? Colors.red : Colors.black,
+        ),
+      ),
+      onTap: onTap,
     );
   }
 }

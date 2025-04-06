@@ -13,30 +13,30 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
   bool isYouVisibleInView = false;
 
   final List<Map<String, dynamic>> globalUsers = [
-    {"name": "Rahul", "points": 3000, "image": "assets/images/rahul.jpg"},
-    {"name": "Mugesh", "points": 2980, "image": "assets/images/mugesh.jpg"},
-    {"name": "Manibai", "points": 2450, "image": "assets/images/manibai.jpg"},
-    {"name": "Deepika", "points": 2000, "image": "assets/images/deepika.jpg"},
-    {"name": "Gaylu", "points": 1990, "image": "assets/images/gaylu.jpg"},
-    {"name": "Gian", "points": 1500, "image": "assets/images/user1.jpg"},
-    {"name": "MaddyBabu", "points": 1490, "image": "assets/images/user2.jpg"},
-    {"name": "Kowchick", "points": 1400, "image": "assets/images/user3.jpg"},
-    {"name": "Krithick", "points": 1300, "image": "assets/images/user4.jpg"},
-    {"name": "Gokyy", "points": 1250, "image": "assets/images/user5.jpg"},
+    {"name": "Rahul", "points": 3000, "image": "assets/images/Boy1.png"},
+    {"name": "Mugesh", "points": 2980, "image": "assets/images/Boy2.png"},
+    {"name": "Manibai", "points": 2450, "image": "assets/images/Boy3.png"},
+    {"name": "Deepika", "points": 2000, "image": "assets/images/Girl1.png"},
+    {"name": "Gaylu", "points": 1990, "image": "assets/images/Boy4.png"},
+    {"name": "Gian", "points": 1500, "image": "assets/images/Boy5.png"},
+    {"name": "MaddyBabu", "points": 1490, "image": "assets/images/Boy6.png"},
+    {"name": "Kowchick", "points": 1400, "image": "assets/images/Boy7.png"},
+    {"name": "Krithick", "points": 1300, "image": "assets/images/Boy8.png"},
+    {"name": "Gokyy", "points": 1250, "image": "assets/images/Boy9.png"},
   ];
 
   final List<Map<String, dynamic>> localUsers = [
-    {"name": "Ram", "points": 1800, "image": "assets/images/user6.jpg"},
-    {"name": "Sita", "points": 1700, "image": "assets/images/user7.jpg"},
-    {"name": "Geetha", "points": 1650, "image": "assets/images/user8.jpg"},
-    {"name": "Vikram", "points": 1600, "image": "assets/images/user9.jpg"},
-    {"name": "Rani", "points": 1500, "image": "assets/images/user10.jpg"},
+    {"name": "Ram", "points": 1800, "image": "assets/images/Boy10.png"},
+    {"name": "Sita", "points": 1700, "image": "assets/images/Girl2.png"},
+    {"name": "Geetha", "points": 1650, "image": "assets/images/Girl3.png"},
+    {"name": "Vikram", "points": 1600, "image": "assets/images/Boy11.png"},
+    {"name": "Rani", "points": 1500, "image": "assets/images/Girl4.png"},
   ];
 
   final Map<String, dynamic> you = {
     "name": "You",
     "points": 1350,
-    "image": "assets/images/you.jpg",
+    "image": "assets/images/Boy12.png",
   };
 
   late List<Map<String, dynamic>> users;

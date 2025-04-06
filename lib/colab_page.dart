@@ -1,329 +1,284 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'home_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class ColabPage extends StatefulWidget {
+  const ColabPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Collaboration Demo',
-      theme: ThemeData(primarySwatch: Colors.green),
-      home: const CollaborationPage(),
-    );
-  }
+  State<ColabPage> createState() => _ColabPageState();
 }
 
-class CollaborationPage extends StatefulWidget {
-  const CollaborationPage({Key? key}) : super(key: key);
-
-  @override
-  _CollaborationPageState createState() => _CollaborationPageState();
-}
-
-class _CollaborationPageState extends State<CollaborationPage>
-    with SingleTickerProviderStateMixin {
+class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
   late TabController _tabController;
-  bool _isReadyToCollab = false;
-
-  final String currentUserId = "User123";
-  final Map<String, dynamic> currentUserDetails = {
-    "ownerName": "User123",
-    "farmName": "Paradise Farm",
-    "location": "Padur",
-    "imageUrl": "https://via.placeholder.com/100",
-  };
+  bool isReadyToCollab = false;
+  String? userFarmId;
+  final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  Map<String, DocumentSnapshot> _sentRequests = {};
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadToggleStateFromFirestore();
+    _loadUserFarm();
+    _loadSentRequests();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  Future<void> _loadUserFarm() async {
+    final query =
+        await FirebaseFirestore.instance
+            .collection('farms')
+            .where('sellerId', isEqualTo: currentUserId)
+            .limit(1)
+            .get();
+
+    if (query.docs.isNotEmpty) {
+      final doc = query.docs.first;
+      userFarmId = doc.id;
+      setState(() {
+        isReadyToCollab = doc['isReadyToCollab'] ?? false;
+      });
+    }
   }
 
-  Future<void> _loadToggleStateFromFirestore() async {
-    final doc = await FirebaseFirestore.instance
-        .collection('collabReady')
-        .doc(currentUserId)
-        .get();
+  Future<void> _loadSentRequests() async {
+    final query =
+        await FirebaseFirestore.instance
+            .collection('collabRequests')
+            .where('requesterId', isEqualTo: currentUserId)
+            .get();
+
     setState(() {
-      _isReadyToCollab = doc.exists;
+      _sentRequests = {for (var doc in query.docs) doc['farmId']: doc};
     });
   }
 
-  Future<void> _publishCollabStatus() async {
-    await FirebaseFirestore.instance
-        .collection('collabReady')
-        .doc(currentUserId)
-        .set(currentUserDetails);
+  Future<void> _updateReadiness(bool value) async {
+    if (userFarmId != null) {
+      await FirebaseFirestore.instance
+          .collection('farms')
+          .doc(userFarmId)
+          .update({'isReadyToCollab': value});
+      setState(() {
+        isReadyToCollab = value;
+      });
+    }
   }
 
-  Future<void> _removeCollabStatus() async {
-    await FirebaseFirestore.instance
-        .collection('collabReady')
-        .doc(currentUserId)
-        .delete();
-  }
+  Future<void> _sendCollabRequest(String farmId) async {
+    final docRef = await FirebaseFirestore.instance
+        .collection('collabRequests')
+        .add({
+          'farmId': farmId,
+          'requesterId': currentUserId,
+          'status': 'pending',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
 
-  void _onRequestAccess(String targetUserId) async {
-    await FirebaseFirestore.instance.collection('pendingRequests').add({
-      'requestorId': currentUserId,
-      'targetUserId': targetUserId,
-      'timestamp': FieldValue.serverTimestamp(),
+    final newDoc = await docRef.get();
+    setState(() {
+      _sentRequests[farmId] = newDoc;
     });
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Request sent!')),
+      const SnackBar(content: Text('Collaboration request sent!')),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Collaboration'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Apply Requests'),
-            Tab(text: 'Pending Requests'),
-            Tab(text: 'Received Requests'),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                const Text('Ready to Collab?'),
-                const Spacer(),
-                Switch(
-                  value: _isReadyToCollab,
-                  onChanged: (bool newValue) async {
-                    setState(() {
-                      _isReadyToCollab = newValue;
-                    });
-                    if (newValue) {
-                      await _publishCollabStatus();
-                    } else {
-                      await _removeCollabStatus();
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildApplyRequestsTab(),
-                _buildPendingRequestsTab(),
-                _buildReceivedRequestsTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<void> _cancelRequest(String requestId, String farmId) async {
+    await FirebaseFirestore.instance
+        .collection('collabRequests')
+        .doc(requestId)
+        .delete();
+
+    setState(() {
+      _sentRequests.remove(farmId);
+    });
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Request cancelled.')));
+  }
+
+  Future<void> _approveRequest(String requestId) async {
+    await FirebaseFirestore.instance
+        .collection('collabRequests')
+        .doc(requestId)
+        .update({'status': 'approved'});
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Request approved.')));
+  }
+
+  Future<void> _rejectRequest(String requestId) async {
+    await FirebaseFirestore.instance
+        .collection('collabRequests')
+        .doc(requestId)
+        .update({'status': 'rejected'});
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Request rejected.')));
+  }
+
+  Future<void> _endCollaboration(String requestId) async {
+    await FirebaseFirestore.instance
+        .collection('collabRequests')
+        .doc(requestId)
+        .delete();
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Collaboration ended.')));
   }
 
   Widget _buildApplyRequestsTab() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('collabReady').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text("Error: ${snapshot.error}"));
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final docs = snapshot.data!.docs;
-        if (docs.isEmpty) {
-          return const Center(child: Text("No one is ready to collab yet."));
-        }
-        return ListView.builder(
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
-            final targetUserId = docs[index].id;
-            return Card(
-              margin: const EdgeInsets.all(8.0),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                    child: data['imageUrl'] != null
-                        ? Image.network(
-                            data['imageUrl'],
-                            height: 150,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          )
-                        : const Icon(Icons.agriculture, size: 60),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          data['ownerName'] ?? 'No Name',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return Column(
+      children: [
+        SwitchListTile(
+          title: const Text('Ready to Collab?'),
+          value: isReadyToCollab,
+          onChanged: (val) => _updateReadiness(val),
+        ),
+        if (isReadyToCollab)
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('farms')
+                      .where('isReadyToCollab', isEqualTo: true)
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final farms =
+                    snapshot.data!.docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return data['sellerId'] != currentUserId;
+                    }).toList();
+
+                if (farms.isEmpty) {
+                  return const Center(child: Text('No farms are ready.'));
+                }
+
+                return ListView.builder(
+                  itemCount: farms.length,
+                  itemBuilder: (context, index) {
+                    final doc = farms[index];
+                    final data = doc.data() as Map<String, dynamic>;
+                    final farmId = doc.id;
+                    final requestDoc = _sentRequests[farmId];
+                    final requestStatus = requestDoc?.get('status');
+
+                    return Card(
+                      margin: const EdgeInsets.all(8),
+                      child: ListTile(
+                        leading: Image.network(
+                          data['imageUrl'] ?? '',
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          data['farmName'] ?? 'No Farm Name',
-                          style: const TextStyle(fontSize: 14),
+                        title: Text(data['name'] ?? 'Unnamed Farm'),
+                        subtitle: Text(
+                          "Location: ${data['location'] ?? 'Unknown'}",
                         ),
-                        const SizedBox(height: 5),
-                        Text("Location: ${data['location'] ?? 'Unknown'}"),
-                      ],
-                    ),
-                  ),
-                  ButtonBar(
-                    alignment: MainAxisAlignment.end,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          if (targetUserId != currentUserId) {
-                            _onRequestAccess(targetUserId);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('You cannot request collab with yourself!'),
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text("Request to Collab"),
+                        trailing:
+                            requestStatus == null
+                                ? ElevatedButton(
+                                  onPressed: () => _sendCollabRequest(farmId),
+                                  child: const Text("Request"),
+                                )
+                                : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      requestStatus[0].toUpperCase() +
+                                          requestStatus.substring(1),
+                                      style: TextStyle(
+                                        color:
+                                            requestStatus == 'approved'
+                                                ? Colors.green
+                                                : requestStatus == 'rejected'
+                                                ? Colors.red
+                                                : Colors.orange,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    if (requestStatus == 'pending')
+                                      IconButton(
+                                        icon: const Icon(Icons.cancel),
+                                        color: Colors.red,
+                                        onPressed:
+                                            () => _cancelRequest(
+                                              requestDoc!.id,
+                                              farmId,
+                                            ),
+                                      ),
+                                  ],
+                                ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildPendingRequestsTab() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('pendingRequests')
-          .where('requestorId', isEqualTo: currentUserId)
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text("Error: ${snapshot.error}"));
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final requestDocs = snapshot.data!.docs;
-        if (requestDocs.isEmpty) {
-          return const Center(child: Text("No pending requests."));
-        }
-        return ListView.builder(
-          itemCount: requestDocs.length,
-          itemBuilder: (context, index) {
-            final data = requestDocs[index].data() as Map<String, dynamic>;
-            return ListTile(
-              title: Text("Requested collab with: ${data['targetUserId'] ?? 'Unknown'}"),
-              subtitle: Text(
-                "Sent on: ${data['timestamp'] != null ? data['timestamp'].toDate().toString() : 'N/A'}",
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+    if (userFarmId == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  Widget _buildReceivedRequestsTab() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('pendingRequests')
-          .where('targetUserId', isEqualTo: currentUserId)
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
+      stream:
+          FirebaseFirestore.instance
+              .collection('collabRequests')
+              .where('farmId', isEqualTo: userFarmId)
+              .where('status', isEqualTo: 'pending')
+              .snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text("Error: ${snapshot.error}"));
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final docs = snapshot.data!.docs;
-        if (docs.isEmpty) {
-          return const Center(child: Text("No received requests."));
+
+        final requests = snapshot.data!.docs;
+
+        if (requests.isEmpty) {
+          return const Center(child: Text('No pending requests.'));
         }
+
         return ListView.builder(
-          itemCount: docs.length,
+          itemCount: requests.length,
           itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
-            final requestId = docs[index].id;
-            final requesterId = data['requestorId'];
+            final data = requests[index].data() as Map<String, dynamic>;
+            final requestId = requests[index].id;
+
             return Card(
-              margin: const EdgeInsets.all(8.0),
+              margin: const EdgeInsets.all(8),
               child: ListTile(
-                title: Text("Request from: $requesterId"),
-                subtitle: Text(
-                  "Received on: ${data['timestamp'] != null ? data['timestamp'].toDate().toString() : 'N/A'}",
-                ),
+                title: Text("Request from: ${data['requesterId']}"),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.check, color: Colors.green),
-                      onPressed: () async {
-                        await FirebaseFirestore.instance.collection('approvedRequests').add({
-                          'ownerId': currentUserId,
-                          'requestorId': requesterId,
-                          'timestamp': FieldValue.serverTimestamp(),
-                        });
-                        await FirebaseFirestore.instance
-                            .collection('pendingRequests')
-                            .doc(requestId)
-                            .delete();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Request approved')),
-                        );
-                      },
+                    ElevatedButton(
+                      onPressed: () => _approveRequest(requestId),
+                      child: const Text("Approve"),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red),
-                      onPressed: () async {
-                        await FirebaseFirestore.instance
-                            .collection('pendingRequests')
-                            .doc(requestId)
-                            .delete();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Request denied')),
-                        );
-                      },
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () => _rejectRequest(requestId),
+                      child: const Text(
+                        "Reject",
+                        style: TextStyle(color: Colors.red),
+                      ),
                     ),
                   ],
                 ),
@@ -332,6 +287,98 @@ class _CollaborationPageState extends State<CollaborationPage>
           },
         );
       },
+    );
+  }
+
+  Widget _buildMyCollaborationsTab() {
+    return StreamBuilder<QuerySnapshot>(
+      stream:
+          FirebaseFirestore.instance
+              .collection('collabRequests')
+              .where('requesterId', isEqualTo: currentUserId)
+              .where('status', isEqualTo: 'approved')
+              .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final requests = snapshot.data!.docs;
+
+        if (requests.isEmpty) {
+          return const Center(child: Text('No collaborations yet.'));
+        }
+
+        return ListView.builder(
+          itemCount: requests.length,
+          itemBuilder: (context, index) {
+            final request = requests[index];
+            final data = request.data() as Map<String, dynamic>;
+            final farmId = data['farmId'];
+
+            return FutureBuilder<DocumentSnapshot>(
+              future:
+                  FirebaseFirestore.instance
+                      .collection('farms')
+                      .doc(farmId)
+                      .get(),
+              builder: (context, farmSnapshot) {
+                if (!farmSnapshot.hasData || !farmSnapshot.data!.exists) {
+                  return const SizedBox();
+                }
+
+                final farm = farmSnapshot.data!.data() as Map<String, dynamic>;
+
+                return Card(
+                  margin: const EdgeInsets.all(8),
+                  child: ListTile(
+                    leading: Image.network(
+                      farm['imageUrl'] ?? '',
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                    ),
+                    title: Text(farm['name'] ?? 'Unnamed Farm'),
+                    subtitle: Text("Owner: ${farm['owner'] ?? 'Unknown'}"),
+                    trailing: TextButton(
+                      onPressed: () => _endCollaboration(request.id),
+                      child: const Text(
+                        "End",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Farm Collaboration"),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: "Apply Requests"),
+            Tab(text: "Pending Requests"),
+            Tab(text: "My Collaborations"),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildApplyRequestsTab(),
+          _buildPendingRequestsTab(),
+          _buildMyCollaborationsTab(),
+        ],
+      ),
     );
   }
 }

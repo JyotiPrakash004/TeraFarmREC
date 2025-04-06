@@ -2,20 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'Product_page.dart';
 import 'dashboard_page.dart';
-// Import the dashboard page
-import 'menu_page.dart'; // Import the MenuPage
-import 'cart_page.dart'; // Import the CartPage
-import 'community_page.dart'; // Import the CommunityPage
-import 'shop_page.dart'; // Import ShopPage
+import 'menu_page.dart';
+import 'cart_page.dart';
+import 'community_page.dart';
+import 'shop_page.dart';
 
-class HomePage extends StatefulWidget { // Updated class name
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState(); // Updated state class name
+  _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> { // Updated state class name
+class _HomePageState extends State<HomePage> {
   final List<Map<String, String>> categories = [
     {"name": "Onion", "image": "assets/onion.png"},
     {"name": "Tomato", "image": "assets/tomato.png"},
@@ -34,7 +33,7 @@ class _HomePageState extends State<HomePage> { // Updated state class name
     );
   }
 
-  int _selectedIndex = 0; // Highlight Home icon
+  int _selectedIndex = 0;
 
   void _onNavItemTapped(int index) {
     if (index == 0) {
@@ -50,7 +49,7 @@ class _HomePageState extends State<HomePage> { // Updated state class name
     } else if (index == 2) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => DashboardPage()), // Navigate to DashboardPage
+        MaterialPageRoute(builder: (context) => DashboardPage()),
       );
     } else if (index == 3) {
       Navigator.push(
@@ -74,17 +73,14 @@ class _HomePageState extends State<HomePage> { // Updated state class name
               (context) => IconButton(
                 icon: Icon(Icons.menu, color: Colors.white),
                 onPressed: () {
-                  Scaffold.of(context).openDrawer(); // Open the drawer
+                  Scaffold.of(context).openDrawer();
                 },
               ),
         ),
         title: Row(
           children: [
             Transform.translate(
-              offset: Offset(
-                -40,
-                5,
-              ), // Move the logo 40 pixels left and 5 pixels down
+              offset: Offset(-40, 5),
               child: Image.asset("assets/terafarm_logo.png", height: 40),
             ),
           ],
@@ -101,13 +97,13 @@ class _HomePageState extends State<HomePage> { // Updated state class name
                 context,
                 MaterialPageRoute(
                   builder: (context) => CartPage(cartItems: []),
-                ), // Navigate to CartPage
+                ),
               );
             },
           ),
         ],
       ),
-      drawer: MenuPage(), // Add the MenuPage as the drawer
+      drawer: MenuPage(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -282,23 +278,17 @@ class _HomePageState extends State<HomePage> { // Updated state class name
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.purple, // Selected icon color
-        unselectedItemColor: Colors.grey, // Unselected icon color
+        selectedItemColor: Colors.purple,
+        unselectedItemColor: Colors.grey,
         onTap: _onNavItemTapped,
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.apartment), // Community icon
+            icon: Icon(Icons.apartment),
             label: 'Community',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.agriculture), // Changed to farm icon
-            label: 'Farm',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.store), // Changed to shop icon
-            label: 'Shop',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'),
+          BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
         ],
       ),
     );
