@@ -1,17 +1,8 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(TeraFarmApp());
-}
-
-class TeraFarmApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(debugShowCheckedModeBanner: false, home: LandingPage());
-  }
-}
-
 class LandingPage extends StatelessWidget {
+  const LandingPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,16 +11,15 @@ class LandingPage extends StatelessWidget {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
+            colors: [Colors.green.shade800, Colors.green.shade500],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.green.shade800, Colors.green.shade500],
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // App Title & Tagline
-            Text(
+            const Text(
               "Terafarm",
               style: TextStyle(
                 fontSize: 24,
@@ -37,8 +27,8 @@ class LandingPage extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 5),
-            Text.rich(
+            const SizedBox(height: 5),
+            const Text.rich(
               TextSpan(
                 text: "Grow, Sell, ",
                 style: TextStyle(fontSize: 18, color: Colors.white),
@@ -54,33 +44,30 @@ class LandingPage extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: 20),
-
-            // Logo
+            const SizedBox(height: 20),
             Image.asset("assets/logo.png", width: 150),
-            SizedBox(height: 20),
-
-            // Slogan
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               "Earn. Eat fresh.\nBuild a greener city.",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.white),
             ),
-            SizedBox(height: 30),
-
-            // Get Started Button
+            const SizedBox(height: 30),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
-                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 30,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
               onPressed: () {
-                // Navigate to the next screen
+                Navigator.pushNamed(context, '/login');
               },
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
