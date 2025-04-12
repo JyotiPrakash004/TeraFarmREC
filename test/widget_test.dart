@@ -8,12 +8,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+<<<<<<< HEAD
 import 'package:TeraFarm/main.dart';
+=======
+import 'package:terafarm01/main.dart';
+>>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
+<<<<<<< HEAD
     await tester.pumpWidget(TeraFarmApp());
+=======
+    await tester.pumpWidget(const TeraFarmApp());
+>>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

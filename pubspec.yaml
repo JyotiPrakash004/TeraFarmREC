@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 name: TeraFarm
+=======
+name: terafarm01
+>>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -19,7 +23,11 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
+<<<<<<< HEAD
   sdk: ^3.7.0
+=======
+  sdk: ^3.7.2
+>>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -34,6 +42,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+<<<<<<< HEAD
   firebase_core: ^3.12.1
   firebase_auth: ^5.5.1
   firebase_storage: ^12.4.4
@@ -45,16 +54,21 @@ dependencies:
   fl_chart: ^0.70.0
   intl: ^0.18.1
   
+=======
+>>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+<<<<<<< HEAD
   flutter_launcher_icons: ^0.14.3
 
 flutter_icons:
   android: true
   ios: true
   image_path: "assets/icon.jpg" # your icon image path
+=======
+>>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -74,6 +88,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+<<<<<<< HEAD
   assets:
     - assets/logo.png
     - assets/create_account_bg.png
@@ -107,6 +122,8 @@ flutter:
     - assets/Girl2.png
     - assets/Girl3.png
     - assets/Girl4.png
+=======
+>>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

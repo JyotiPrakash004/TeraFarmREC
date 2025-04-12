@@ -27,7 +27,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
+<<<<<<< HEAD
   if (!window.Create(L"terafarm1", origin, size)) {
+=======
+  if (!window.Create(L"terafarm01", origin, size)) {
+>>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
