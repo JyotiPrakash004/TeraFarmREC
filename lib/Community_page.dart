@@ -152,21 +152,6 @@ class _CommunityPageState extends State<CommunityPage> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.purple,
-        unselectedItemColor: Colors.grey,
-        onTap: _onNavItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.apartment),
-            label: 'Community',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'),
-          BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
-        ],
-      ),
     );
   }
 

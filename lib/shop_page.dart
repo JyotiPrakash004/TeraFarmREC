@@ -206,21 +206,6 @@ class _ShopPageState extends State<ShopPage> {
                 icon: const Icon(Icons.shopping_cart),
               )
               : null,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.purple,
-        unselectedItemColor: Colors.grey,
-        onTap: _onNavItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.apartment),
-            label: 'Community',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: 'Farm'),
-          BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
-        ],
-      ),
     );
   }
 }
