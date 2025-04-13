@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'location.dart';
 import 'choose_exact_location.dart';
@@ -57,17 +58,17 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _storeUserLocation(String address, double lat, double lon) async {
+  Future<void> _storeUserLocation(
+    String address,
+    double lat,
+    double lon,
+  ) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
     final uid = currentUser.uid;
     await FirebaseFirestore.instance.collection('users').doc(uid).set({
       'u_id': uid,
-      'location': {
-        'address': address,
-        'latitude': lat,
-        'longitude': lon,
-      },
+      'location': {'address': address, 'latitude': lat, 'longitude': lon},
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -75,7 +76,9 @@ class _HomePageState extends State<HomePage> {
   Future<void> _chooseExactLocation() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const ChooseExactLocationScreen()),
+      MaterialPageRoute(
+        builder: (context) => const ChooseExactLocationScreen(),
+      ),
     );
     if (result != null && result is LatLng) {
       final lat = result.latitude;
@@ -174,33 +177,53 @@ class _HomePageState extends State<HomePage> {
                         ),
                         Positioned.fill(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18.0,
+                            ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 const SizedBox(height: 60),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Builder(
-                                      builder: (context) => IconButton(
-                                        icon: const Icon(Icons.menu, color: Colors.white),
-                                        onPressed: () => Scaffold.of(context).openDrawer(),
-                                      ),
+                                      builder:
+                                          (context) => IconButton(
+                                            icon: const Icon(
+                                              Icons.menu,
+                                              color: Colors.white,
+                                            ),
+                                            onPressed:
+                                                () =>
+                                                    Scaffold.of(
+                                                      context,
+                                                    ).openDrawer(),
+                                          ),
                                     ),
                                     Row(
                                       children: [
                                         IconButton(
-                                          icon: const Icon(Icons.notifications, color: Colors.white),
+                                          icon: const Icon(
+                                            Icons.notifications,
+                                            color: Colors.white,
+                                          ),
                                           onPressed: () {},
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.shopping_cart, color: Colors.white),
+                                          icon: const Icon(
+                                            Icons.shopping_cart,
+                                            color: Colors.white,
+                                          ),
                                           onPressed: () {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) => const CartPage(cartItems: []),
+                                                builder:
+                                                    (context) => const CartPage(
+                                                      cartItems: [],
+                                                    ),
                                               ),
                                             );
                                           },
@@ -218,7 +241,10 @@ class _HomePageState extends State<HomePage> {
                   ),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -230,7 +256,10 @@ class _HomePageState extends State<HomePage> {
                                 child: TextField(
                                   decoration: InputDecoration(
                                     hintText: "Search",
-                                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                                    prefixIcon: const Icon(
+                                      Icons.search,
+                                      color: Colors.grey,
+                                    ),
                                     filled: true,
                                     fillColor: Colors.grey.shade200,
                                     border: OutlineInputBorder(
@@ -242,14 +271,20 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 10,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade200,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Text(
                                   "Price : Low to High",
-                                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                             ],
@@ -257,19 +292,25 @@ class _HomePageState extends State<HomePage> {
                           const SizedBox(height: 16),
                           const Text(
                             "Farms around you",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('farms')
-                                .orderBy('timestamp', descending: true)
-                                .snapshots(),
+                            stream:
+                                FirebaseFirestore.instance
+                                    .collection('farms')
+                                    .orderBy('timestamp', descending: true)
+                                    .snapshots(),
                             builder: (context, snapshot) {
                               if (!snapshot.hasData) {
                                 return const Padding(
                                   padding: EdgeInsets.only(top: 20),
-                                  child: Center(child: CircularProgressIndicator()),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
                                 );
                               }
                               final farmDocs = snapshot.data!.docs;
@@ -284,43 +325,57 @@ class _HomePageState extends State<HomePage> {
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: farmDocs.length,
                                 itemBuilder: (context, index) {
-                                  final farm = farmDocs[index].data() as Map<String, dynamic>;
-                                  final farmName = farm["farmName"] ?? "Unnamed Farm";
-                                  final description = farm["farmDescription"] ?? "No description";
-                                  final imageUrl = farm["imageUrl"] ?? "assets/sample_farm.png";
+                                  final farm =
+                                      farmDocs[index].data()
+                                          as Map<String, dynamic>;
+                                  final farmName =
+                                      farm["farmName"] ?? "Unnamed Farm";
+                                  final description =
+                                      farm["farmDescription"] ??
+                                      "No description";
+                                  final imageUrl =
+                                      farm["imageUrl"] ??
+                                      "assets/sample_farm.png";
                                   final scale = farm["scale"] ?? "N/A";
                                   final rating = farm["rating"] ?? 4.0;
 
                                   return GestureDetector(
-                                    onTap: () => _onFarmSelected(farmDocs[index]),
+                                    onTap:
+                                        () => _onFarmSelected(farmDocs[index]),
                                     child: Card(
                                       margin: const EdgeInsets.only(bottom: 15),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           ClipRRect(
-                                            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                                            child: imageUrl.startsWith("assets/")
-                                                ? Image.asset(
-                                                    imageUrl,
-                                                    height: 150,
-                                                    width: double.infinity,
-                                                    fit: BoxFit.cover,
-                                                  )
-                                                : Image.network(
-                                                    imageUrl,
-                                                    height: 150,
-                                                    width: double.infinity,
-                                                    fit: BoxFit.cover,
-                                                  ),
+                                            borderRadius:
+                                                const BorderRadius.vertical(
+                                                  top: Radius.circular(10),
+                                                ),
+                                            child:
+                                                imageUrl.startsWith("assets/")
+                                                    ? Image.asset(
+                                                      imageUrl,
+                                                      height: 150,
+                                                      width: double.infinity,
+                                                      fit: BoxFit.cover,
+                                                    )
+                                                    : Image.network(
+                                                      imageUrl,
+                                                      height: 150,
+                                                      width: double.infinity,
+                                                      fit: BoxFit.cover,
+                                                    ),
                                           ),
                                           Padding(
                                             padding: const EdgeInsets.all(10.0),
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Text(
                                                   farmName,
@@ -338,7 +393,9 @@ class _HomePageState extends State<HomePage> {
                                                 ),
                                                 const SizedBox(height: 5),
                                                 Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
                                                   children: [
                                                     Text("Scale: $scale"),
                                                     Row(
@@ -394,12 +451,17 @@ class _HomePageState extends State<HomePage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 15,
+                            ),
                           ),
                           onPressed: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (context) => const HomePage()),
+                              MaterialPageRoute(
+                                builder: (context) => const HomePage(),
+                              ),
                             );
                           },
                           child: const Text(
@@ -412,16 +474,24 @@ class _HomePageState extends State<HomePage> {
                           style: OutlinedButton.styleFrom(
                             backgroundColor: const Color(0xFF407944),
                             foregroundColor: Colors.white,
-                            side: BorderSide(color: Colors.grey.shade400, width: 2),
+                            side: BorderSide(
+                              color: Colors.grey.shade400,
+                              width: 2,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 15,
+                            ),
                           ),
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const SellerPage()),
+                              MaterialPageRoute(
+                                builder: (context) => const SellerPage(),
+                              ),
                             );
                           },
                           child: const Text('Seller'),

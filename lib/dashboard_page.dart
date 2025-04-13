@@ -33,7 +33,6 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
       drawer: _buildDrawer(),
-      floatingActionButton: _buildFloatingActionButton(),
       body: _buildBody(sellerId),
     );
   }
@@ -85,19 +84,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  FloatingActionButton _buildFloatingActionButton() {
-    return FloatingActionButton(
-      backgroundColor: Colors.blue.shade900,
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AIPage()),
-        );
-      },
-      child: const Icon(Icons.smart_toy, color: Colors.white, size: 28),
-    );
-  }
-
   Widget _buildBody(String sellerId) {
     return SafeArea(
       child: SingleChildScrollView(
@@ -110,7 +96,6 @@ class _DashboardPageState extends State<DashboardPage> {
             const SizedBox(height: 20),
             _buildBarChart(sellerId),
             _buildEarningsSection(),
-            _buildDailyTaskSection(),
             _buildDashboardButtons(),
             _buildFarmSection(sellerId),
             _buildProductListingsTable(sellerId),
@@ -126,7 +111,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade800,
+                backgroundColor: Colors.orange, // Changed to orange
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
                   vertical: 12,
@@ -312,53 +297,6 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildDailyTaskSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 20),
-        const Text(
-          "Daily Task",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Watering",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Row(
-                children: [
-                  Column(
-                    children: [
-                      const Text("At 8:30 AM"),
-                      Checkbox(value: false, onChanged: (value) {}),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  Column(
-                    children: [
-                      const Text("At 5:30 PM"),
-                      Checkbox(value: false, onChanged: (value) {}),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
