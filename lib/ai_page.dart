@@ -66,9 +66,7 @@ class AIPage extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => RecommendationService(),
-                  ),
+                  MaterialPageRoute(builder: (context) => RecommendationForm()),
                 );
               },
               icon: const Icon(Icons.recommend, size: 24, color: Colors.white),

@@ -1,7 +1,10 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class PlantGrowthAnalysisPage extends StatefulWidget {
@@ -15,25 +18,12 @@ class PlantGrowthAnalysisPage extends StatefulWidget {
 class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
   // Your backend URL for fetching plant suggestions.
   final String backendUrl = "https://tera-242561185203.asia-south1.run.app/";
-
   String? _expandedPlantId;
   final Map<String, bool> _loadingAdvice = {};
   final Map<String, String> _adviceCache = {};
 
-  // Static tasks mapping per plant.
+  // Updated plant tasks map (removed apple, added new plants)
   Map<String, Map<String, List<String>>> plantTasks = {
-    'apple': {
-      'daily': [
-        'Check for pest signs',
-        'Water the apple tree base (if needed)',
-        'Observe leaf color',
-      ],
-      'weekly': [
-        'Inspect for fungal diseases',
-        'Apply organic fertilizer',
-        'Prune small branches',
-      ],
-    },
     'beans': {
       'daily': [
         'Water soil (keep moist)',
@@ -70,15 +60,169 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
         'Check for rot signs',
       ],
     },
+    'strawberry': {
+      'daily': [
+        'Water in morning',
+        'Check for slugs or snails',
+        'Remove damaged leaves',
+      ],
+      'weekly': [
+        'Fertilize with potassium-rich feed',
+        'Mulch with straw or plastic',
+        'Trim runners',
+      ],
+    },
+    'lemon': {
+      'daily': [
+        'Check moisture level',
+        'Inspect for pests (like aphids)',
+        'Ensure 6-8 hrs sunlight',
+      ],
+      'weekly': [
+        'Fertilize with citrus blend',
+        'Prune dead branches',
+        'Clean leaves (if dusty)',
+      ],
+    },
+    'mulberry': {
+      'daily': [
+        'Water deeply (if soil is dry)',
+        'Look for insect damage',
+        'Observe leaf condition',
+      ],
+      'weekly': [
+        'Apply compost or manure',
+        'Thin overcrowded branches',
+        'Check for scale insects',
+      ],
+    },
+    'papaya': {
+      'daily': [
+        'Water base (avoid trunk)',
+        'Inspect for whiteflies or mites',
+        'Monitor leaf color',
+      ],
+      'weekly': [
+        'Add compost or mulch',
+        'Fertilize with NPK',
+        'Remove yellowing leaves',
+      ],
+    },
+    'pineapple': {
+      'daily': [
+        'Water soil (keep evenly moist)',
+        'Check for rot at base',
+        'Inspect leaves for pests',
+      ],
+      'weekly': [
+        'Fertilize with fruit fertilizer',
+        'Loosen surrounding soil',
+        'Remove weeds nearby',
+      ],
+    },
+    'egg plant': {
+      'daily': [
+        'Water deeply in morning',
+        'Support heavy branches',
+        'Check leaves for pests',
+      ],
+      'weekly': [
+        'Apply nitrogen-rich fertilizer',
+        'Prune lower leaves',
+        'Inspect fruit for damage',
+      ],
+    },
+    'mint': {
+      'daily': [
+        'Water regularly (keep moist)',
+        'Pinch tips to encourage bushiness',
+        'Check for mildew',
+      ],
+      'weekly': [
+        'Harvest to promote growth',
+        'Fertilize lightly',
+        'Thin overcrowded shoots',
+      ],
+    },
+    'spinach': {
+      'daily': [
+        'Water in early morning',
+        'Check for bolting signs',
+        'Protect from strong sun',
+      ],
+      'weekly': [
+        'Harvest mature leaves',
+        'Fertilize with compost tea',
+        'Weed regularly',
+      ],
+    },
+    'ginger': {
+      'daily': [
+        'Keep soil moist (not soggy)',
+        'Check for fungal growth',
+        'Remove yellowing leaves',
+      ],
+      'weekly': [
+        'Add compost or mulch',
+        'Fertilize with organic mix',
+        'Ensure good drainage',
+      ],
+    },
+    'alovera': {
+      'daily': [
+        'Check soil dryness',
+        'Wipe dust off leaves',
+        'Inspect for mealybugs',
+      ],
+      'weekly': [
+        'Rotate for even sun exposure',
+        'Trim dead leaves',
+        'Avoid overwatering',
+      ],
+    },
+    'garlic': {
+      'daily': [
+        'Water lightly (avoid soggy soil)',
+        'Inspect leaves for yellowing',
+        'Ensure full sun exposure',
+      ],
+      'weekly': [
+        'Fertilize with nitrogen',
+        'Remove competing weeds',
+        'Loosen soil gently',
+      ],
+    },
+    'other': {
+      'daily': [
+        'Water as needed',
+        'Monitor health & color',
+        'Check for visible pests',
+      ],
+      'weekly': [
+        'Fertilize lightly',
+        'Remove weeds',
+        'Inspect for growth issues',
+      ],
+    },
   };
 
   /// Returns an asset image based on the crop name.
   String _getImageAsset(String cropName) {
     String lowerName = cropName.toLowerCase();
-    if (lowerName.contains('tomato')) return 'assets/tomato.png';
-    if (lowerName.contains('beans')) return 'assets/beans.png';
+    if (lowerName.contains('tomato')) return 'assets/tomato1.png';
+    if (lowerName.contains('beans')) return 'assets/beans1.png';
     if (lowerName.contains('onion')) return 'assets/onion.png';
-    if (lowerName.contains('apple')) return 'assets/apple.png';
+    if (lowerName.contains('mint')) return 'assets/mint.png';
+    if (lowerName.contains('spinach')) return 'assets/spinach.png';
+    if (lowerName.contains('ginger')) return 'assets/ginger.png';
+    if (lowerName.contains('garlic')) return 'assets/garlic.png';
+    if (lowerName.contains('strawberry')) return 'assets/strawberry.png';
+    if (lowerName.contains('papaya')) return 'assets/papaya.png';
+    if (lowerName.contains('lemon')) return 'assets/lemon.png';
+    if (lowerName.contains('pineapple')) return 'assets/pineapple.png';
+    if (lowerName.contains('egg plant')) return 'assets/eggplant.png';
+    if (lowerName.contains('alovera')) return 'assets/alovera.png';
+    if (lowerName.contains('mulberry')) return 'assets/mulberry.png';
     return 'assets/default.png';
   }
 
@@ -115,7 +259,7 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
   }
 
   /// Determines whether a task is marked as complete.
-  /// Daily tasks are complete only if marked today.
+  /// Daily tasks are complete only if marked today;
   /// Weekly tasks are complete if marked within the past 7 days.
   bool _isTaskChecked(
     Map<String, dynamic> completedTasksMap,
@@ -158,7 +302,6 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
         .doc(plantId);
     final userId = FirebaseAuth.instance.currentUser!.uid;
     final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
-
     final today = DateTime.now();
     final todayStr =
         "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
@@ -175,11 +318,9 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
         final snapshot = await transaction.get(userDoc);
         int currentXp = snapshot.data()?['xp'] ?? 0;
         int currentLevel = snapshot.data()?['level'] ?? 1;
-
         int newXp = currentXp + xpGain;
         bool leveledUp = false;
 
-        // Dynamic level up: threshold increases by 5 per level.
         while (newXp >= _getLevelUpThreshold(currentLevel)) {
           newXp -= _getLevelUpThreshold(currentLevel);
           currentLevel++;
@@ -187,7 +328,6 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
         }
 
         transaction.update(userDoc, {'xp': newXp, 'level': currentLevel});
-
         if (leveledUp) {
           Future.delayed(const Duration(milliseconds: 300), () {
             _showLevelUpPopup(currentLevel);
@@ -195,7 +335,6 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
         }
       });
     } else {
-      // Removing a task completion simply deletes its record.
       await plantDoc.update({'completedTasks.$task': FieldValue.delete()});
     }
   }
@@ -307,14 +446,13 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
               final bool isExpanded = _expandedPlantId == plantId;
               final String imageAsset = _getImageAsset(plantName);
 
-              // Ensure that completedTasks field exists.
               final Map<String, dynamic> completedTasksMap =
                   (plantData['completedTasks'] is Map<String, dynamic>)
                       ? plantData['completedTasks'] as Map<String, dynamic>
                       : {};
 
-              final tasks =
-                  plantTasks[plantName] ?? {'daily': [], 'weekly': []};
+              // Use tasks from the map; if not found, use 'other'.
+              final tasks = plantTasks[plantName] ?? plantTasks['other']!;
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -439,6 +577,8 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
                                   ),
                                 ),
                               ),
+                            // Growth Log Section
+                            GrowthLogSection(plantId: plantId),
                           ],
                         ),
                       ),
@@ -449,6 +589,244 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
           );
         },
       ),
+    );
+  }
+}
+
+/// GrowthLogSection widget that allows users to add growth logs and view a growth graph.
+class GrowthLogSection extends StatefulWidget {
+  final String plantId;
+  const GrowthLogSection({required this.plantId, Key? key}) : super(key: key);
+
+  @override
+  State<GrowthLogSection> createState() => _GrowthLogSectionState();
+}
+
+class _GrowthLogSectionState extends State<GrowthLogSection> {
+  final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure an initial growth log exists.
+    _ensureGrowthLogsExist();
+  }
+
+  Future<void> _ensureGrowthLogsExist() async {
+    final growthLogsRef = FirebaseFirestore.instance
+        .collection('plants')
+        .doc(widget.plantId)
+        .collection('growthLogs');
+    final snapshot = await growthLogsRef.limit(1).get();
+    if (snapshot.docs.isEmpty) {
+      await growthLogsRef.add({
+        'date': Timestamp.now(),
+        'height': 0.0,
+        'note': 'Initial growth log',
+      });
+    }
+  }
+
+  Future<void> _addGrowthLog() async {
+    if (!mounted) return;
+    final height = double.tryParse(_heightController.text);
+    if (height == null || height <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid height > 0')),
+      );
+      return;
+    }
+    final note = _noteController.text.trim();
+    if (note.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Note cannot be empty')));
+      return;
+    }
+    final log = {'date': Timestamp.now(), 'height': height, 'note': note};
+    try {
+      await FirebaseFirestore.instance
+          .collection('plants')
+          .doc(widget.plantId)
+          .collection('growthLogs')
+          .add(log);
+      if (!mounted) return;
+      setState(() {
+        _heightController.clear();
+        _noteController.clear();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to add log: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(),
+        const Text(
+          "📏 Growth Tracker",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 100,
+                child: TextField(
+                  controller: _heightController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Height (cm)'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 150,
+                child: TextField(
+                  controller: _noteController,
+                  decoration: const InputDecoration(labelText: 'Note'),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle, color: Colors.green),
+                onPressed: _addGrowthLog,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<QuerySnapshot>(
+          stream:
+              FirebaseFirestore.instance
+                  .collection('plants')
+                  .doc(widget.plantId)
+                  .collection('growthLogs')
+                  .orderBy('date')
+                  .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData)
+              return const Center(child: CircularProgressIndicator());
+            final logs = snapshot.data!.docs;
+            if (logs.isEmpty) return const Text("No growth logs yet.");
+            // Create sorted data points for the graph.
+            final List<FlSpot> dataPoints =
+                logs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final rawHeight = data['height'];
+                    final rawDate = data['date'];
+                    final height =
+                        (rawHeight is num) ? rawHeight.toDouble() : 0.0;
+                    final date = (rawDate as Timestamp).toDate();
+                    return FlSpot(
+                      date.millisecondsSinceEpoch.toDouble(),
+                      height,
+                    );
+                  }).toList()
+                  ..sort((a, b) => a.x.compareTo(b.x));
+            // If less than 2 points, show message.
+            if (dataPoints.length < 2) {
+              return const Text("Add more data points to view graph.");
+            }
+            // Calculate a safe y-axis interval.
+            final double maxY = dataPoints.map((e) => e.y).reduce(max);
+            final double intervalY = (maxY / 5).clamp(1, double.infinity);
+
+            // Create x-axis labels based on date.
+            final List<String> labels =
+                logs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final date = (data['date'] as Timestamp).toDate();
+                  return "${date.month}/${date.day}";
+                }).toList();
+
+            return Column(
+              children: [
+                SizedBox(
+                  height: 200,
+                  child: LineChart(
+                    LineChartData(
+                      minY: 0,
+                      maxY: maxY + 5,
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: dataPoints,
+                          isCurved: true,
+                          barWidth: 3,
+                          dotData: FlDotData(show: true),
+                          color: Colors.green,
+                        ),
+                      ],
+                      titlesData: FlTitlesData(
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            interval: 1,
+                            getTitlesWidget: (value, meta) {
+                              final int index = value.toInt();
+                              // Safeguard against index overflow.
+                              if (index < 0 || index >= labels.length)
+                                return const Text('');
+                              return Text(
+                                labels[index],
+                                style: const TextStyle(fontSize: 10),
+                              );
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            interval: intervalY,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                "${value.toInt()} cm",
+                                style: const TextStyle(fontSize: 10),
+                              );
+                            },
+                          ),
+                        ),
+                        topTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      gridData: FlGridData(show: true),
+                      borderData: FlBorderData(show: true),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...logs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final height = (data['height'] as num?)?.toDouble() ?? 0.0;
+                  final note = data['note'] ?? '';
+                  final date = (data['date'] as Timestamp).toDate();
+                  return ListTile(
+                    dense: true,
+                    title: Text(
+                      "📅 ${date.month}/${date.day}/${date.year} — 🌱 ${height.toStringAsFixed(1)} cm",
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    subtitle: Text(
+                      "📝 $note",
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  );
+                }).toList(),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }

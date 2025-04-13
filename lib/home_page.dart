@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'location.dart';
-import 'choose_exact_location.dart';
 import 'Product_page.dart';
 import 'dashboard_page.dart';
 import 'menu_page.dart';
@@ -12,6 +11,8 @@ import 'cart_page.dart';
 import 'community_page.dart';
 import 'shop_page.dart';
 import 'seller_page.dart';
+import 'address_map_picker.dart';
+import 'package:latlong2/latlong.dart' as latLong;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -73,18 +74,30 @@ class _HomePageState extends State<HomePage> {
     }, SetOptions(merge: true));
   }
 
-  Future<void> _chooseExactLocation() async {
+  /// Launches the map-based location picker using AddressMapPicker.
+  Future<void> _chooseMapLocation() async {
+    final latLong.LatLng initialLocation =
+        LocationService().currentPosition != null
+            ? latLong.LatLng(
+              LocationService().currentPosition!.latitude,
+              LocationService().currentPosition!.longitude,
+            )
+            : latLong.LatLng(37.7749, -122.4194); // Default: San Francisco
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ChooseExactLocationScreen(),
+        builder:
+            (context) => AddressMapPicker(initialLocation: initialLocation),
       ),
     );
-    if (result != null && result is LatLng) {
-      final lat = result.latitude;
-      final lon = result.longitude;
-      final newAddress = "${lat.toStringAsFixed(4)}, ${lon.toStringAsFixed(4)}";
-      await _storeUserLocation(newAddress, lat, lon);
+
+    if (result != null && result is Map) {
+      final newAddress = result["address"] as String;
+      final lat = result["lat"] as double;
+      final lng = result["lng"] as double;
+
+      await _storeUserLocation(newAddress, lat, lng);
       setState(() {
         _userAddress = newAddress;
       });
@@ -98,6 +111,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// Builds the location widget.
+  /// A map icon button is added to the right of the displayed location.
   Widget _buildLocationWidget() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -125,25 +140,10 @@ class _HomePageState extends State<HomePage> {
               textAlign: TextAlign.center,
             ),
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'choose') {
-                await _chooseExactLocation();
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                const PopupMenuItem<String>(
-                  value: 'choose',
-                  child: Text('Choose exact location'),
-                ),
-              ];
-            },
-            child: const Icon(
-              Icons.keyboard_arrow_down,
-              color: Colors.green,
-              size: 20,
-            ),
+          // New map icon button to open the AddressMapPicker.
+          IconButton(
+            icon: const Icon(Icons.map, color: Colors.green),
+            onPressed: _chooseMapLocation,
           ),
         ],
       ),
