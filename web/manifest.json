@@ -1,11 +1,6 @@
 {
-<<<<<<< HEAD
     "name": "terafarm1",
     "short_name": "terafarm1",
-=======
-    "name": "terafarm01",
-    "short_name": "terafarm01",
->>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

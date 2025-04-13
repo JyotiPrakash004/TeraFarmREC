@@ -15,11 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "33CC10EC2044A3C60003C045"
-<<<<<<< HEAD
                BuildableName = "terafarm1.app"
-=======
-               BuildableName = "terafarm01.app"
->>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
                BlueprintName = "Runner"
                ReferencedContainer = "container:Runner.xcodeproj">
             </BuildableReference>
@@ -35,11 +31,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
-<<<<<<< HEAD
             BuildableName = "terafarm1.app"
-=======
-            BuildableName = "terafarm01.app"
->>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
@@ -74,11 +66,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
-<<<<<<< HEAD
             BuildableName = "terafarm1.app"
-=======
-            BuildableName = "terafarm01.app"
->>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
@@ -95,11 +83,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
-<<<<<<< HEAD
             BuildableName = "terafarm1.app"
-=======
-            BuildableName = "terafarm01.app"
->>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>

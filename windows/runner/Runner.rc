@@ -90,21 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-<<<<<<< HEAD
             VALUE "FileDescription", "terafarm1" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "terafarm1" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "terafarm1.exe" "\0"
             VALUE "ProductName", "terafarm1" "\0"
-=======
-            VALUE "FileDescription", "terafarm01" "\0"
-            VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "terafarm01" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "terafarm01.exe" "\0"
-            VALUE "ProductName", "terafarm01" "\0"
->>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

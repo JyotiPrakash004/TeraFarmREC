@@ -1,10 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
-<<<<<<< HEAD
         android:label="TeraFarm"
-=======
-        android:label="terafarm01"
->>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

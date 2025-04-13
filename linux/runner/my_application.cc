@@ -40,19 +40,11 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-<<<<<<< HEAD
     gtk_header_bar_set_title(header_bar, "terafarm1");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
     gtk_window_set_title(window, "terafarm1");
-=======
-    gtk_header_bar_set_title(header_bar, "terafarm01");
-    gtk_header_bar_set_show_close_button(header_bar, TRUE);
-    gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
-  } else {
-    gtk_window_set_title(window, "terafarm01");
->>>>>>> 1ade028f5ff23de3dde1390dc19f70ec431e725e
   }
 
   gtk_window_set_default_size(window, 1280, 720);
