@@ -77,6 +77,8 @@ flutter:
   uses-material-design: true
 
   assets:
+    - lib/models/
+    - lib/services/
     - assets/logo.png
     - assets/create_account_bg.png
     - assets/login_bg.png
