@@ -68,7 +68,7 @@ def get_market_price():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ NEW: Get Available Commodities in Last 10 Days for a State
+# ✅ OPTIMIZED: Get Available Commodities in Last 10 Days for a State
 @app.route('/available_commodities', methods=['POST'])
 def available_commodities():
     data = request.json
@@ -83,17 +83,17 @@ def available_commodities():
     found_commodities = set()
     limit = 100
     offset = 0
-    max_records = 5000
+    max_offset = 300  # ⏱️ Limit to 300 to prevent timeout
 
     try:
-        while offset < max_records:
+        while offset < max_offset:
             params = {
                 "api-key": AGMARKNET_API_KEY,
                 "format": "json",
                 "limit": limit,
                 "offset": offset
             }
-            res = requests.get(base_url, params=params)
+            res = requests.get(base_url, params=params, timeout=10)
             if res.status_code != 200:
                 break
 
@@ -115,7 +115,7 @@ def available_commodities():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ NEW: Get Price Data by State + Commodity (Last 10 Days)
+# ✅ Get Price Data by State + Commodity (Last 10 Days)
 @app.route('/market_price_by_commodity', methods=['POST'])
 def market_price_by_commodity():
     data = request.json
