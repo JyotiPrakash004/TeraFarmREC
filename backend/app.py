@@ -11,38 +11,47 @@ CORS(app)
 def status():
     return "API running"
 
-# ✅ Dummy Crop Recommendation Logic
-def recommend_crops(land_size, budget, duration, weather):
+# ✅ Updated Crop Recommendation Logic (based on state)
+def recommend_crops(land_size, budget, duration, state):
+    state = state.lower()
     suggestions = []
-    if weather.lower() in ['sunny', 'hot']:
-        if int(duration) <= 3:
-            suggestions.append('Tomato')
-        else:
-            suggestions.append('Rice')
-    if weather.lower() in ['cold', 'rainy']:
-        suggestions.append('Wheat')
-        if int(budget) > 10000:
-            suggestions.append('Broccoli')
+
+    if state in ['punjab', 'haryana', 'uttar pradesh']:
+        suggestions += ['Wheat', 'Rice']
+    elif state in ['maharashtra', 'karnataka', 'andhra pradesh']:
+        suggestions += ['Sugarcane', 'Cotton']
+    elif state in ['kerala', 'tamil nadu']:
+        suggestions += ['Banana', 'Coconut']
+    else:
+        suggestions += ['Tomato', 'Onion', 'Potato']
+
     if int(land_size) < 1:
         suggestions = ['Spinach', 'Lettuce']
+    elif int(budget) < 5000:
+        suggestions += ['Cabbage', 'Okra']
+
     return list(set(suggestions))
 
-# ✅ Crop Suggestion Route
+# ✅ Crop Suggestion Route (Updated)
 @app.route('/suggest_crop', methods=['POST'])
 def suggest_crop():
     data = request.json
     land_size = data.get('land_size')
     budget = data.get('budget')
     duration = data.get('duration')
-    weather = data.get('weather')
-    crops = recommend_crops(land_size, budget, duration, weather)
+    state = data.get('state')
+    
+    if not all([land_size, budget, duration, state]):
+        return jsonify({'error': 'Missing one or more required fields.'}), 400
+
+    crops = recommend_crops(land_size, budget, duration, state)
     return jsonify({'suggested_crops': crops})
 
 # ✅ API Configs
 AGMARKNET_API_KEY = "579b464db66ec23bdd0000014bab96786f8f4f6e5547fb09be3502b8"
 AGMARKNET_BASE_URL = "https://api.data.gov.in/resource/f9efb06e-d50b-4c52-9760-e4c2b3d18b08"
 
-# ✅ Market Price Route (default version)
+# ✅ Market Price Route
 @app.route('/market_price', methods=['POST'])
 def get_market_price():
     data = request.json
@@ -84,7 +93,7 @@ def available_commodities():
     found_commodities = set()
     limit = 100
     offset = 0
-    max_offset = 1000  # ✅ Reduced to avoid timeout
+    max_offset = 1000
 
     try:
         while offset < max_offset:
@@ -131,7 +140,7 @@ def market_price_by_commodity():
 
     limit = 100
     offset = 0
-    max_records = 1000  # ✅ Reduced for performance
+    max_records = 1000
     filtered_records = []
 
     try:
