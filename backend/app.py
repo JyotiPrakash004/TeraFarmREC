@@ -38,7 +38,7 @@ def suggest_crop():
     crops = recommend_crops(land_size, budget, duration, weather)
     return jsonify({'suggested_crops': crops})
 
-# ✅ Market Price Route (District-Based)
+# ✅ Market Price Route (No district)
 AGMARKNET_API_KEY = "579b464db66ec23bdd0000014bab96786f8f4f6e5547fb09be3502b8"
 AGMARKNET_BASE_URL = "https://api.data.gov.in/resource/f9efb06e-d50b-4c52-9760-e4c2b3d18b08"
 
@@ -47,18 +47,16 @@ def get_market_price():
     data = request.json
     commodity = data.get('commodity')
     state = data.get('state')
-    district = data.get('district')
 
-    if not all([commodity, state, district]):
-        return jsonify({"error": "Missing required fields"}), 400
+    if not all([commodity, state]):
+        return jsonify({"error": "Missing required fields: commodity and state"}), 400
 
     params = {
         "api-key": AGMARKNET_API_KEY,
         "format": "json",
         "filters[commodity]": commodity,
         "filters[state]": state,
-        "filters[district]": district,
-        "limit": 5
+        "limit": 10
     }
 
     try:
@@ -70,7 +68,7 @@ def get_market_price():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ Filtered Market Price Route (Improved Search)
+# ✅ Filtered Market Price Route (Improved Search, No district)
 @app.route('/filtered_market_price', methods=['POST'])
 def filtered_market_price():
     data = request.json
@@ -99,11 +97,11 @@ def filtered_market_price():
             res = requests.get(base_url, params=params)
             if res.status_code != 200:
                 break
-            data = res.json().get("records", [])
-            if not data:
+            records = res.json().get("records", [])
+            if not records:
                 break
 
-            for r in data:
+            for r in records:
                 if (
                     r.get("state", "").lower() == state.lower()
                     and r.get("commodity", "").lower() == commodity.lower()
