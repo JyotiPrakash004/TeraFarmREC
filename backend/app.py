@@ -38,10 +38,11 @@ def suggest_crop():
     crops = recommend_crops(land_size, budget, duration, weather)
     return jsonify({'suggested_crops': crops})
 
-# ✅ Market Price Route (Default API)
+# ✅ API Configs
 AGMARKNET_API_KEY = "579b464db66ec23bdd0000014bab96786f8f4f6e5547fb09be3502b8"
 AGMARKNET_BASE_URL = "https://api.data.gov.in/resource/f9efb06e-d50b-4c52-9760-e4c2b3d18b08"
 
+# ✅ Market Price Route (default version)
 @app.route('/market_price', methods=['POST'])
 def get_market_price():
     data = request.json
@@ -60,7 +61,7 @@ def get_market_price():
     }
 
     try:
-        response = requests.get(AGMARKNET_BASE_URL, params=params)
+        response = requests.get(AGMARKNET_BASE_URL, params=params, timeout=10)
         response.raise_for_status()
         result = response.json()
         records = result.get("records", [])
@@ -68,7 +69,7 @@ def get_market_price():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ OPTIMIZED: Get Available Commodities in Last 10 Days for a State
+# ✅ Get Available Commodities (last 10 days)
 @app.route('/available_commodities', methods=['POST'])
 def available_commodities():
     data = request.json
@@ -83,7 +84,7 @@ def available_commodities():
     found_commodities = set()
     limit = 100
     offset = 0
-    max_offset = 300  # ⏱️ Limit to 300 to prevent timeout
+    max_offset = 1000  # ✅ Reduced to avoid timeout
 
     try:
         while offset < max_offset:
@@ -115,7 +116,7 @@ def available_commodities():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ Get Price Data by State + Commodity (Last 10 Days)
+# ✅ Market Price by State + Commodity (last 10 days)
 @app.route('/market_price_by_commodity', methods=['POST'])
 def market_price_by_commodity():
     data = request.json
@@ -130,7 +131,7 @@ def market_price_by_commodity():
 
     limit = 100
     offset = 0
-    max_records = 5000
+    max_records = 1000  # ✅ Reduced for performance
     filtered_records = []
 
     try:
@@ -141,7 +142,7 @@ def market_price_by_commodity():
                 "limit": limit,
                 "offset": offset
             }
-            res = requests.get(base_url, params=params)
+            res = requests.get(base_url, params=params, timeout=10)
             if res.status_code != 200:
                 break
             records = res.json().get("records", [])
