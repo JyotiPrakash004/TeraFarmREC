@@ -4,6 +4,11 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+# ✅ Status check route
+@app.route('/status')
+def status():
+    return "API running"
+
 # Dummy crop recommendation logic (replace with ML model if needed)
 def recommend_crops(land_size, budget, duration, weather):
     suggestions = []
