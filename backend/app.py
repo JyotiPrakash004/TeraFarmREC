@@ -35,45 +35,44 @@ def recommend_crops(land_size, budget, duration, state):
 # ✅ Crop Suggestion Route (Updated)
 @app.route('/suggest_crop', methods=['POST'])
 def suggest_crop():
-    data = request.json
+    data = request.json or {}
     land_size = data.get('land_size')
-    budget = data.get('budget')
-    duration = data.get('duration')
-    state = data.get('state')
-    
+    budget    = data.get('budget')
+    duration  = data.get('duration')
+    state     = data.get('state')
+
     if not all([land_size, budget, duration, state]):
         return jsonify({'error': 'Missing one or more required fields.'}), 400
 
     crops = recommend_crops(land_size, budget, duration, state)
     return jsonify({'suggested_crops': crops})
 
-# ✅ API Configs
-AGMARKNET_API_KEY = "579b464db66ec23bdd0000014bab96786f8f4f6e5547fb09be3502b8"
+# ✅ Agmarknet API Configs
+AGMARKNET_API_KEY  = "579b464db66ec23bdd0000014bab96786f8f4f6e5547fb09be3502b8"
 AGMARKNET_BASE_URL = "https://api.data.gov.in/resource/f9efb06e-d50b-4c52-9760-e4c2b3d18b08"
 
 # ✅ Market Price Route
 @app.route('/market_price', methods=['POST'])
 def get_market_price():
-    data = request.json
+    data      = request.json or {}
     commodity = data.get('commodity')
-    state = data.get('state')
+    state     = data.get('state')
 
     if not all([commodity, state]):
         return jsonify({"error": "Missing required fields: commodity and state"}), 400
 
     params = {
         "api-key": AGMARKNET_API_KEY,
-        "format": "json",
+        "format":  "json",
         "filters[commodity]": commodity,
-        "filters[state]": state,
-        "limit": 10
+        "filters[state]":     state,
+        "limit":              10
     }
 
     try:
-        response = requests.get(AGMARKNET_BASE_URL, params=params, timeout=10)
-        response.raise_for_status()
-        result = response.json()
-        records = result.get("records", [])
+        resp    = requests.get(AGMARKNET_BASE_URL, params=params, timeout=10)
+        resp.raise_for_status()
+        records = resp.json().get("records", [])
         return jsonify({"prices": records})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -81,17 +80,20 @@ def get_market_price():
 # ✅ Get Available Commodities (last 10 days)
 @app.route('/available_commodities', methods=['POST'])
 def available_commodities():
-    data = request.json
+    data  = request.json or {}
     state = data.get('state')
 
     if not state:
         return jsonify({'error': 'State is required.'}), 400
 
-    base_url = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
-    last_10_dates = [(datetime.today() - timedelta(days=i)).strftime("%d/%m/%Y") for i in range(10)]
+    base_url      = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
+    last_10_dates = [
+        (datetime.today() - timedelta(days=i)).strftime("%d/%m/%Y")
+        for i in range(10)
+    ]
 
-    found_commodities = set()
-    limit = 100
+    found = set()
+    limit  = 100
     offset = 0
     max_offset = 1000
 
@@ -99,90 +101,93 @@ def available_commodities():
         while offset < max_offset:
             params = {
                 "api-key": AGMARKNET_API_KEY,
-                "format": "json",
-                "limit": limit,
-                "offset": offset
+                "format":  "json",
+                "limit":   limit,
+                "offset":  offset
             }
-            res = requests.get(base_url, params=params, timeout=10)
-            if res.status_code != 200:
+            resp = requests.get(base_url, params=params, timeout=10)
+            if resp.status_code != 200:
                 break
 
-            records = res.json().get("records", [])
-            if not records:
+            recs = resp.json().get("records", [])
+            if not recs:
                 break
 
-            for r in records:
+            for r in recs:
                 if (
                     r.get("state", "").lower() == state.lower()
                     and r.get("arrival_date") in last_10_dates
                 ):
-                    found_commodities.add(r.get("commodity", "").title())
+                    found.add(r.get("commodity", "").title())
 
             offset += limit
 
-        return jsonify({"commodities": sorted(list(found_commodities))})
-
+        return jsonify({"commodities": sorted(found)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 # ✅ Market Price by State + Commodity (last 10 days)
 @app.route('/market_price_by_commodity', methods=['POST'])
 def market_price_by_commodity():
-    data = request.json
-    state = data.get('state')
+    data      = request.json or {}
+    state     = data.get('state')
     commodity = data.get('commodity')
 
-    if not state or not commodity:
+    if not all([state, commodity]):
         return jsonify({'error': 'State and commodity are required.'}), 400
 
-    base_url = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
-    last_10_dates = [(datetime.today() - timedelta(days=i)).strftime("%d/%m/%Y") for i in range(10)]
+    base_url      = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
+    last_10_dates = [
+        (datetime.today() - timedelta(days=i)).strftime("%d/%m/%Y")
+        for i in range(10)
+    ]
 
-    limit = 100
-    offset = 0
-    max_records = 1000
-    filtered_records = []
+    limit   = 100
+    offset  = 0
+    max_rec = 1000
+    out     = []
 
     try:
-        while offset < max_records:
+        while offset < max_rec:
             params = {
                 "api-key": AGMARKNET_API_KEY,
-                "format": "json",
-                "limit": limit,
-                "offset": offset
+                "format":  "json",
+                "limit":   limit,
+                "offset":  offset
             }
-            res = requests.get(base_url, params=params, timeout=10)
-            if res.status_code != 200:
-                break
-            records = res.json().get("records", [])
-            if not records:
+            resp = requests.get(base_url, params=params, timeout=10)
+            if resp.status_code != 200:
                 break
 
-            for r in records:
+            recs = resp.json().get("records", [])
+            if not recs:
+                break
+
+            for r in recs:
                 if (
-                    r.get("state", "").lower() == state.lower()
+                    r.get("state", "").lower()     == state.lower()
                     and r.get("commodity", "").lower() == commodity.lower()
                     and r.get("arrival_date") in last_10_dates
                 ):
-                    filtered_records.append({
-                        "date": r.get("arrival_date"),
-                        "market": r.get("market"),
+                    out.append({
+                        "date":        r.get("arrival_date"),
+                        "market":      r.get("market"),
                         "modal_price": r.get("modal_price")
                     })
 
             offset += limit
 
-        sorted_records = sorted(
-            filtered_records,
+        # sort descending by date
+        sorted_out = sorted(
+            out,
             key=lambda x: datetime.strptime(x["date"], "%d/%m/%Y"),
             reverse=True
         )
-
-        return jsonify({"records": sorted_records})
-
+        return jsonify({"records": sorted_out})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 # ✅ Run Server
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    # listen on port 8080 for Render / Cloud Run
+    app.run(host='0.0.0.0', port=8080)
