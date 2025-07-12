@@ -48,20 +48,26 @@ def get_market_price():
     state = data.get('state')
     district = data.get('district')
 
+    if not all([commodity, state, district]):
+        return jsonify({"error": "Missing required fields"}), 400
+
     params = {
         "api-key": AGMARKNET_API_KEY,
         "format": "json",
         "filters[commodity]": commodity,
         "filters[state]": state,
-        "filters[district]": district
+        "filters[district]": district,
+        "limit": 5
     }
 
-    response = requests.get(AGMARKNET_BASE_URL, params=params)
-
-    if response.status_code == 200:
-        return jsonify(response.json())
-    else:
-        return jsonify({"error": "Failed to fetch data"}), 500
+    try:
+        response = requests.get(AGMARKNET_BASE_URL, params=params)
+        response.raise_for_status()
+        result = response.json()
+        records = result.get("records", [])
+        return jsonify({"prices": records})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ✅ Run Server
 if __name__ == '__main__':
