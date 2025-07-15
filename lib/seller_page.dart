@@ -9,6 +9,9 @@ import 'grow_plant_page.dart';
 import 'plant_growth_analysis_page.dart';
 import 'shop_page.dart';
 import 'menu_page.dart';
+import 'crop_suggestion_page.dart';
+import 'market_price_page.dart'; // ✅ NEW IMPORT
+import 'sustainable.dart';
 
 class SellerPage extends StatelessWidget {
   const SellerPage({Key? key}) : super(key: key);
@@ -41,24 +44,37 @@ class SellerPage extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Builder(
-                                builder: (context) => IconButton(
-                                  icon: const Icon(Icons.menu, color: Colors.white),
-                                  onPressed: () => Scaffold.of(context).openDrawer(),
-                                ),
+                                builder:
+                                    (context) => IconButton(
+                                      icon: const Icon(
+                                        Icons.menu,
+                                        color: Colors.white,
+                                      ),
+                                      onPressed:
+                                          () =>
+                                              Scaffold.of(context).openDrawer(),
+                                    ),
                               ),
                               Row(
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.notifications, color: Colors.white),
+                                    icon: const Icon(
+                                      Icons.notifications,
+                                      color: Colors.white,
+                                    ),
                                     onPressed: () {},
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.shopping_cart, color: Colors.white),
+                                    icon: const Icon(
+                                      Icons.shopping_cart,
+                                      color: Colors.white,
+                                    ),
                                     onPressed: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => const HomePage(),
+                                          builder:
+                                              (context) => const HomePage(),
                                         ),
                                       );
                                     },
@@ -76,62 +92,66 @@ class SellerPage extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.only(top: 120.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 20),
-                  _buildNavigationButton(
-                    context,
-                    label: 'Dashboard',
-                    page: const DashboardPage(),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildNavigationButton(
-                    context,
-                    label: 'Daily Tasks',
-                    page: const PlantGrowthAnalysisPage(),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildNavigationButton(
-                    context,
-                    label: 'Orders',
-                    page: const OrderListPage(),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildNavigationButton(
-                    context,
-                    label: 'AI Plant Assistant',
-                    page: const AIPage(),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildNavigationButton(
-                    context,
-                    label: 'Community',
-                    page: const CommunityPage(),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildNavigationButton(
-                    context,
-                    label: 'Shop',
-                    page: const ShopPage(),
-                  ),
-                  const Spacer(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildBottomButton(
+              // ✅ MAKE SCROLLABLE:
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 20),
+                    _buildNavigationButton(
+                      context,
+                      label: 'Dashboard',
+                      page: const DashboardPage(),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildNavigationButton(
+                      context,
+                      label: 'Daily Tasks',
+                      page: const PlantGrowthAnalysisPage(),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildNavigationButton(
+                      context,
+                      label: 'Orders',
+                      page: const OrderListPage(),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildNavigationButton(
+                      context,
+                      label: 'Sustainable Farming',
+                      page: const SustainablePage(),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildNavigationButton(
+                      context,
+                      label: 'Community',
+                      page: const CommunityPage(),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildNavigationButton(
+                      context,
+                      label: 'Shop',
+                      page: const ShopPage(),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildNavigationButton(
+                      context,
+                      label: 'Crop Suggestion',
+                      page: CropSuggestionPage(),
+                    ),
+                    const SizedBox(height: 30),
+                    // Add Market Price Analysis button at the bottom
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: _buildNavigationButton(
                         context,
-                        label: 'List Farm',
-                        page: const ListFarmPage(),
+                        label: 'Market Price Analysis',
+                        page: MarketPricePage(),
                       ),
-                      _buildBottomButton(
-                        context,
-                        label: 'List Produce',
-                        page: const ListFarmPage(),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 90), // Space above the bottom bar
+                  ],
+                ),
               ),
             ),
             Align(
@@ -140,14 +160,20 @@ class SellerPage extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 10.0,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF407944),
-                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 15,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -155,7 +181,9 @@ class SellerPage extends StatelessWidget {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const ListFarmPage()),
+                              MaterialPageRoute(
+                                builder: (context) => const ListFarmPage(),
+                              ),
                             );
                           },
                           child: const Text(
@@ -166,7 +194,10 @@ class SellerPage extends StatelessWidget {
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF407944),
-                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 15,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -174,7 +205,9 @@ class SellerPage extends StatelessWidget {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const GrowPlantPage()),
+                              MaterialPageRoute(
+                                builder: (context) => const GrowPlantPage(),
+                              ),
                             );
                           },
                           child: const Text(
@@ -201,16 +234,24 @@ class SellerPage extends StatelessWidget {
                           style: OutlinedButton.styleFrom(
                             backgroundColor: const Color(0xFF407944),
                             foregroundColor: Colors.white,
-                            side: BorderSide(color: Colors.grey.shade400, width: 2),
+                            side: BorderSide(
+                              color: Colors.grey.shade400,
+                              width: 2,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 15,
+                            ),
                           ),
                           onPressed: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (context) => const HomePage()),
+                              MaterialPageRoute(
+                                builder: (context) => const HomePage(),
+                              ),
                             );
                           },
                           child: const Text('Buyer'),
@@ -223,12 +264,41 @@ class SellerPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 15,
+                            ),
                           ),
                           onPressed: () {},
                           child: const Text(
-                            'Seller',
+                            'Farmer',
                             style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 15,
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AIPage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'AI',
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                       ],
@@ -243,21 +313,19 @@ class SellerPage extends StatelessWidget {
     );
   }
 
-  Widget _buildNavigationButton(BuildContext context,
-      {required String label, required Widget page}) {
+  Widget _buildNavigationButton(
+    BuildContext context, {
+    required String label,
+    required Widget page,
+  }) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.grey.shade200,
         padding: const EdgeInsets.symmetric(vertical: 15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => page),
-        );
+        Navigator.push(context, MaterialPageRoute(builder: (context) => page));
       },
       child: Text(
         label,
@@ -266,21 +334,19 @@ class SellerPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomButton(BuildContext context,
-      {required String label, required Widget page}) {
+  Widget _buildBottomButton(
+    BuildContext context, {
+    required String label,
+    required Widget page,
+  }) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF407944),
         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => page),
-        );
+        Navigator.push(context, MaterialPageRoute(builder: (context) => page));
       },
       child: Text(
         label,

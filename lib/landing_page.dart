@@ -19,7 +19,8 @@ class _LandingPageState extends State<LandingPage> {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => HomePage(), // Redirect for logged in users
+            pageBuilder:
+                (_, __, ___) => HomePage(), // Redirect for logged in users
             transitionsBuilder: (_, animation, __, child) {
               return FadeTransition(opacity: animation, child: child);
             },
@@ -43,7 +44,10 @@ class _LandingPageState extends State<LandingPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.green.shade800, const Color.fromARGB(255, 47, 75, 48)],
+            colors: [
+              Colors.green.shade800,
+              const Color.fromARGB(255, 47, 75, 48),
+            ],
           ),
         ),
         child: Padding(
@@ -54,7 +58,7 @@ class _LandingPageState extends State<LandingPage> {
               const SizedBox(height: 80),
               // Top Title
               Text(
-                "Terafarm",
+                "AgriGuru",
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -85,14 +89,20 @@ class _LandingPageState extends State<LandingPage> {
               // Conditional gap to adjust logo vertical position
               SizedBox(height: logoTopGap),
 
-              // Main Logo (TF icon) now bigger
+              // Main Logo (TF icon) now as a circle
               Center(
-                child: Image.asset(
-                  "assets/logo.png",
-                  width: 250,
+                child: ClipOval(
+                  child: Image.asset(
+                    "assets/landing.png",
+                    width: 250,
+                    height: 250,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
+
+              // Shift terafarm_logo.png horizontally (further to the right), now bigger
 
               // Second spacer
               const Spacer(),
@@ -113,7 +123,10 @@ class _LandingPageState extends State<LandingPage> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 15,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
@@ -121,7 +134,9 @@ class _LandingPageState extends State<LandingPage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const LoginPage()),
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
                       );
                     },
                     child: Row(

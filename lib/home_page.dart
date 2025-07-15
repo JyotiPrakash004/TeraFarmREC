@@ -13,6 +13,7 @@ import 'shop_page.dart';
 import 'seller_page.dart';
 import 'address_map_picker.dart';
 import 'package:latlong2/latlong.dart' as latLong;
+import 'ai_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -291,7 +292,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            "Farms around you",
+                            "Buy directly from farms", // Changed from "Farms around you"
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -494,7 +495,35 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           },
-                          child: const Text('Seller'),
+                          child: const Text(
+                            'Farmer',
+                          ), // Changed from 'Seller' to 'Farmer'
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 15,
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AIPage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'AI',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ],
                     ),

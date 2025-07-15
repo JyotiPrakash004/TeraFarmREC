@@ -416,7 +416,12 @@ class _PlantGrowthAnalysisPageState extends State<PlantGrowthAnalysisPage> {
     final String userId = FirebaseAuth.instance.currentUser!.uid;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plant Growth Analysis'),
+        automaticallyImplyLeading: true, // Show the back arrow
+        iconTheme: const IconThemeData(color: Colors.white), // Make arrow white
+        title: const Text(
+          'Plant Growth Analysis',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.green.shade900,
       ),
       body: StreamBuilder<QuerySnapshot>(

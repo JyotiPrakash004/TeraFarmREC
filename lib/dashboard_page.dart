@@ -31,7 +31,46 @@ class _DashboardPageState extends State<DashboardPage> {
     String sellerId = _auth.currentUser!.uid;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset("assets/top_bar.png", fit: BoxFit.cover),
+            AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: Builder(
+                builder:
+                    (context) => IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.white),
+                      onPressed: () {
+                        Scaffold.of(context).openDrawer();
+                      },
+                    ),
+              ),
+              title: const SizedBox(), // Remove logo from here
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications, color: Colors.white),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart, color: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CartPage(cartItems: []),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
       drawer: _buildDrawer(),
       body: _buildBody(sellerId),
     );
@@ -53,7 +92,11 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           Transform.translate(
             offset: const Offset(-40, 5),
-            child: Image.asset("assets/terafarm_logo.png", height: 40),
+            child: Image.asset(
+              "assets/top_bar.png", // Changed from terafarm_logo.png to top_bar.png
+              height: 40,
+              fit: BoxFit.contain,
+            ),
           ),
         ],
       ),

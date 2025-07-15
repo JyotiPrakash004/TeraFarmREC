@@ -39,8 +39,9 @@ dependencies:
   firebase_storage: ^12.4.4
   cloud_firestore: ^5.6.5
   image_picker: ^1.0.7
-  permission_handler: ^11.4.0
   http: ^1.1.0
+  permission_handler: ^11.4.0
+  provider: ^6.1.5
   google_generative_ai: ^0.4.6-dev
   fl_chart: ^0.70.0
   url_launcher: ^6.1.10
@@ -53,6 +54,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: ^0.11.0
+  
 
 flutter_icons:
   android: true
@@ -76,9 +78,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  
   assets:
-    - lib/models/
-    - lib/services/
     - assets/logo.png
     - assets/create_account_bg.png
     - assets/login_bg.png
@@ -115,7 +116,7 @@ flutter:
     - assets/bottom_bar.png
     - assets/alovera.png
     - assets/beans1.png
-    - assets/egg plant.png
+    - assets/eggplant.png
     - assets/garlic.png
     - assets/ginger.png
     - assets/lemon.png
@@ -127,3 +128,9 @@ flutter:
     - assets/spinach.png
     - assets/strawberry.png
     - assets/tomato1.png
+    - assets/tomato1.png
+    - assets/landing.png
+    - assets/crop.png
+    - assets/fertilizer.png
+    - assets/drip.png
+    - assets/covercropping.png
