@@ -1,17 +1,37 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+from requests.auth import HTTPBasicAuth
+import firebase_admin
+from firebase_admin import credentials, firestore
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
 
-# ✅ Status check
+# === FIREBASE SETUP ===
+cred = credentials.Certificate("firebase-service-account.json")
+firebase_admin.initialize_app(cred)
+db = firestore.client()
+subscribers_ref = db.collection('subscribers')
+
+# === EXOTEL SETUP ===
+EXOTEL_SID           = 'hindustaninstituteoftechnology1'
+EXOTEL_REGION        = 'sg1'                    # Singapore region
+EXOTEL_API_KEY       = '263092c3668b538b11ce5659bb255af3e199f1ff135de6d1'
+EXOTEL_API_PASSWORD  = 'e3cdd384370a81aa17ca73913c55a75f3f8a9a2701ff99db'
+EXOTEL_FROM_NUMBER   = '04446312604'            # Your Exophone
+
+# === AGMARKNET SETUP ===
+AGMARKNET_API_KEY   = "579b464db66ec23bdd0000014bab96786f8f4f6e5547fb09be3502b8"
+AGMARKNET_BASE_URL  = "https://api.data.gov.in/resource/f9efb06e-d50b-4c52-9760-e4c2b3d18b08"
+
+# === STATUS CHECK ===
 @app.route('/status')
 def status():
     return "API running"
 
-# ✅ Updated Crop Recommendation Logic (based on state)
+# === CROP SUGGESTION ===
 def recommend_crops(land_size, budget, duration, state):
     state = state.lower()
     suggestions = []
@@ -32,7 +52,6 @@ def recommend_crops(land_size, budget, duration, state):
 
     return list(set(suggestions))
 
-# ✅ Crop Suggestion Route (Updated)
 @app.route('/suggest_crop', methods=['POST'])
 def suggest_crop():
     data = request.json or {}
@@ -47,11 +66,7 @@ def suggest_crop():
     crops = recommend_crops(land_size, budget, duration, state)
     return jsonify({'suggested_crops': crops})
 
-# ✅ Agmarknet API Configs
-AGMARKNET_API_KEY  = "579b464db66ec23bdd0000014bab96786f8f4f6e5547fb09be3502b8"
-AGMARKNET_BASE_URL = "https://api.data.gov.in/resource/f9efb06e-d50b-4c52-9760-e4c2b3d18b08"
-
-# ✅ Market Price Route
+# === MARKET PRICE FETCH ===
 @app.route('/market_price', methods=['POST'])
 def get_market_price():
     data      = request.json or {}
@@ -77,7 +92,6 @@ def get_market_price():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ Get Available Commodities (last 10 days)
 @app.route('/available_commodities', methods=['POST'])
 def available_commodities():
     data  = request.json or {}
@@ -87,10 +101,7 @@ def available_commodities():
         return jsonify({'error': 'State is required.'}), 400
 
     base_url      = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
-    last_10_dates = [
-        (datetime.today() - timedelta(days=i)).strftime("%d/%m/%Y")
-        for i in range(10)
-    ]
+    last_10_dates = [(datetime.today() - timedelta(days=i)).strftime("%d/%m/%Y") for i in range(10)]
 
     found = set()
     limit  = 100
@@ -114,10 +125,8 @@ def available_commodities():
                 break
 
             for r in recs:
-                if (
-                    r.get("state", "").lower() == state.lower()
-                    and r.get("arrival_date") in last_10_dates
-                ):
+                if (r.get("state", "").lower() == state.lower()
+                        and r.get("arrival_date") in last_10_dates):
                     found.add(r.get("commodity", "").title())
 
             offset += limit
@@ -126,7 +135,6 @@ def available_commodities():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ Market Price by State + Commodity (last 10 days)
 @app.route('/market_price_by_commodity', methods=['POST'])
 def market_price_by_commodity():
     data      = request.json or {}
@@ -137,18 +145,14 @@ def market_price_by_commodity():
         return jsonify({'error': 'State and commodity are required.'}), 400
 
     base_url      = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
-    last_10_dates = [
-        (datetime.today() - timedelta(days=i)).strftime("%d/%m/%Y")
-        for i in range(10)
-    ]
+    last_10_dates = [(datetime.today() - timedelta(days=i)).strftime("%d/%m/%Y") for i in range(10)]
 
     limit   = 100
     offset  = 0
-    max_rec = 1000
     out     = []
 
     try:
-        while offset < max_rec:
+        while offset < 1000:
             params = {
                 "api-key": AGMARKNET_API_KEY,
                 "format":  "json",
@@ -164,11 +168,9 @@ def market_price_by_commodity():
                 break
 
             for r in recs:
-                if (
-                    r.get("state", "").lower()     == state.lower()
-                    and r.get("commodity", "").lower() == commodity.lower()
-                    and r.get("arrival_date") in last_10_dates
-                ):
+                if (r.get("state", "").lower()     == state.lower()
+                        and r.get("commodity", "").lower() == commodity.lower()
+                        and r.get("arrival_date") in last_10_dates):
                     out.append({
                         "date":        r.get("arrival_date"),
                         "market":      r.get("market"),
@@ -177,7 +179,6 @@ def market_price_by_commodity():
 
             offset += limit
 
-        # sort descending by date
         sorted_out = sorted(
             out,
             key=lambda x: datetime.strptime(x["date"], "%d/%m/%Y"),
@@ -187,7 +188,62 @@ def market_price_by_commodity():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ Run Server
+# === IVR SUBSCRIBE/UNSUBSCRIBE ===
+@app.route('/subscribe', methods=['GET', 'POST'])
+def subscribe():
+    phone = request.values.get('From')
+    digit = request.values.get('Digits')
+
+    if not phone:
+        return "Missing phone number", 400
+
+    if digit == '1':
+        subscribers_ref.document(phone).set({
+            'subscribed': True,
+            'timestamp': datetime.utcnow()
+        })
+        return "Thanks! You've been subscribed."
+
+    elif digit == '2':
+        subscribers_ref.document(phone).delete()
+        return "You've been unsubscribed."
+
+    return "Invalid input", 400
+
+# === EXOTEL SMS SENDER ===
+@app.route('/send_sms_alerts', methods=['GET'])
+def send_sms_alerts():
+    # Fetch dynamic market data (example)
+    resp = requests.post(
+        'https://your-domain.com/market_price',
+        json={'commodity': 'Tomato', 'state': 'Maharashtra'}
+    )
+    data  = resp.json().get('prices', [{}])
+    first = data[0] if data else {}
+    price_info = f"Tomato Price in {first.get('market', 'market')}: ₹{first.get('modal_price', '-')}/kg"
+
+    users = subscribers_ref.stream()
+    numbers = []
+    for user in users:
+        if user.to_dict().get('subscribed'):
+            num = user.id
+            if not num.startswith('+'):
+                num = '+91' + num[-10:]
+            numbers.append(num)
+
+    for number in numbers:
+        sms_url = f"https://{EXOTEL_REGION}.exotel.com/v1/Accounts/{EXOTEL_SID}/Sms/send"
+        payload = {
+            'From': EXOTEL_FROM_NUMBER,
+            'To':   number,
+            'Body': price_info
+        }
+        auth = HTTPBasicAuth(EXOTEL_API_KEY, EXOTEL_API_PASSWORD)
+        response = requests.post(sms_url, data=payload, auth=auth)
+        print(f"Sent to {number}: {response.text}")
+
+    return jsonify({'status': 'done', 'recipients': len(numbers)})
+
+# === MAIN ===
 if __name__ == '__main__':
-    # listen on port 8080 for Render / Cloud Run
     app.run(host='0.0.0.0', port=8080)
