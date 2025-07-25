@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'dashboard_page.dart';
 import 'community_page.dart';
 import 'ai_page.dart';
@@ -10,26 +12,32 @@ import 'plant_growth_analysis_page.dart';
 import 'shop_page.dart';
 import 'menu_page.dart';
 import 'crop_suggestion_page.dart';
-import 'market_price_page.dart'; // ✅ NEW IMPORT
+import 'market_price_page.dart';
 import 'sustainable.dart';
+import 'l10n/app_localizations.dart';
+import 'main.dart' show LocaleProvider;
 
 class SellerPage extends StatelessWidget {
   const SellerPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+
     return Scaffold(
       drawer: const MenuPage(),
       body: SafeArea(
         child: Stack(
           children: [
+            // Top bar with language picker, menu, notifications, cart
             Transform.translate(
               offset: const Offset(0, -9),
               child: Stack(
                 children: [
                   Image.asset(
                     'assets/top_bar.png',
-                    width: MediaQuery.of(context).size.width,
+                    width: double.infinity,
                     height: 112,
                     fit: BoxFit.fill,
                   ),
@@ -45,18 +53,45 @@ class SellerPage extends StatelessWidget {
                             children: [
                               Builder(
                                 builder:
-                                    (context) => IconButton(
+                                    (ctx) => IconButton(
                                       icon: const Icon(
                                         Icons.menu,
                                         color: Colors.white,
                                       ),
                                       onPressed:
-                                          () =>
-                                              Scaffold.of(context).openDrawer(),
+                                          () => Scaffold.of(ctx).openDrawer(),
                                     ),
                               ),
                               Row(
                                 children: [
+                                  // Language Dropdown
+                                  DropdownButtonHideUnderline(
+                                    child: DropdownButton<Locale>(
+                                      icon: const Icon(
+                                        Icons.language,
+                                        color: Colors.white,
+                                      ),
+                                      value: localeProv.locale,
+                                      items:
+                                          AppLocalizations.supportedLocales
+                                              .map(
+                                                (l) => DropdownMenuItem(
+                                                  value: l,
+                                                  child: Text(
+                                                    l.languageCode
+                                                        .toUpperCase(),
+                                                  ),
+                                                ),
+                                              )
+                                              .toList(),
+                                      onChanged: (locale) {
+                                        if (locale != null) {
+                                          localeProv.setLocale(locale);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
                                   IconButton(
                                     icon: const Icon(
                                       Icons.notifications,
@@ -73,8 +108,7 @@ class SellerPage extends StatelessWidget {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder:
-                                              (context) => const HomePage(),
+                                          builder: (_) => const HomePage(),
                                         ),
                                       );
                                     },
@@ -90,9 +124,10 @@ class SellerPage extends StatelessWidget {
                 ],
               ),
             ),
+
+            // Body — scrollable list of navigation buttons
             Padding(
               padding: const EdgeInsets.only(top: 120.0),
-              // ✅ MAKE SCROLLABLE:
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -100,65 +135,64 @@ class SellerPage extends StatelessWidget {
                     const SizedBox(height: 20),
                     _buildNavigationButton(
                       context,
-                      label: 'Dashboard',
+                      label: loc.dashboard,
                       page: const DashboardPage(),
                     ),
                     const SizedBox(height: 10),
                     _buildNavigationButton(
                       context,
-                      label: 'Daily Tasks',
+                      label: loc.dailyTasks,
                       page: const PlantGrowthAnalysisPage(),
                     ),
                     const SizedBox(height: 10),
                     _buildNavigationButton(
                       context,
-                      label: 'Orders',
+                      label: loc.orders,
                       page: const OrderListPage(),
                     ),
                     const SizedBox(height: 10),
                     _buildNavigationButton(
                       context,
-                      label: 'Sustainable Farming',
+                      label: loc.sustainableFarming,
                       page: const SustainablePage(),
                     ),
                     const SizedBox(height: 10),
                     _buildNavigationButton(
                       context,
-                      label: 'Community',
+                      label: loc.community,
                       page: const CommunityPage(),
                     ),
                     const SizedBox(height: 10),
                     _buildNavigationButton(
                       context,
-                      label: 'Shop',
+                      label: loc.shop,
                       page: const ShopPage(),
                     ),
                     const SizedBox(height: 10),
                     _buildNavigationButton(
                       context,
-                      label: 'Crop Suggestion',
+                      label: loc.cropSuggestion,
                       page: CropSuggestionPage(),
                     ),
-                    const SizedBox(height: 30),
-                    // Add Market Price Analysis button at the bottom
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: _buildNavigationButton(
-                        context,
-                        label: 'Market Price Analysis',
-                        page: MarketPricePage(),
-                      ),
+                    const SizedBox(height: 10),
+                    _buildNavigationButton(
+                      context,
+                      label: loc.marketPriceAnalysis,
+                      page: MarketPricePage(),
                     ),
-                    const SizedBox(height: 90), // Space above the bottom bar
+                    const SizedBox(height: 30),
                   ],
                 ),
               ),
             ),
+
+            // Bottom action buttons + bottom nav bar
             Align(
               alignment: Alignment.bottomCenter,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Primary actions
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16.0,
@@ -167,57 +201,21 @@ class SellerPage extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF407944),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 30,
-                              vertical: 15,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ListFarmPage(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'List Farm',
-                            style: TextStyle(fontSize: 14, color: Colors.white),
-                          ),
+                        _buildBottomButton(
+                          context,
+                          label: loc.listFarm,
+                          page: const ListFarmPage(),
                         ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF407944),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 30,
-                              vertical: 15,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const GrowPlantPage(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Grow a Plant',
-                            style: TextStyle(fontSize: 14, color: Colors.white),
-                          ),
+                        _buildBottomButton(
+                          context,
+                          label: loc.growPlant,
+                          page: const GrowPlantPage(),
                         ),
                       ],
                     ),
                   ),
+
+                  // Role switcher + AI nav
                   Container(
                     height: 60,
                     width: double.infinity,
@@ -246,15 +244,14 @@ class SellerPage extends StatelessWidget {
                               vertical: 15,
                             ),
                           ),
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HomePage(),
+                          onPressed:
+                              () => Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HomePage(),
+                                ),
                               ),
-                            );
-                          },
-                          child: const Text('Buyer'),
+                          child: Text(loc.buyer),
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton(
@@ -269,10 +266,10 @@ class SellerPage extends StatelessWidget {
                               vertical: 15,
                             ),
                           ),
-                          onPressed: () {},
-                          child: const Text(
-                            'Farmer',
-                            style: TextStyle(color: Colors.black),
+                          onPressed: () {}, // already on SellerPage
+                          child: Text(
+                            loc.farmer,
+                            style: const TextStyle(color: Colors.black),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -288,17 +285,16 @@ class SellerPage extends StatelessWidget {
                               vertical: 15,
                             ),
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AIPage(),
+                          onPressed:
+                              () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AIPage(),
+                                ),
                               ),
-                            );
-                          },
-                          child: const Text(
-                            'AI',
-                            style: TextStyle(color: Colors.white),
+                          child: Text(
+                            loc.ai,
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ),
                       ],
@@ -318,18 +314,25 @@ class SellerPage extends StatelessWidget {
     required String label,
     required Widget page,
   }) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.grey.shade200,
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-      onPressed: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => page));
-      },
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 16, color: Colors.black),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.grey.shade200,
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        onPressed:
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => page),
+            ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 16, color: Colors.black),
+        ),
       ),
     );
   }
@@ -345,9 +348,9 @@ class SellerPage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      onPressed: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => page));
-      },
+      onPressed:
+          () =>
+              Navigator.push(context, MaterialPageRoute(builder: (_) => page)),
       child: Text(
         label,
         style: const TextStyle(fontSize: 14, color: Colors.white),

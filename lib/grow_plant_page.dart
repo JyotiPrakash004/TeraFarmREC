@@ -1,45 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+
+import 'l10n/app_localizations.dart';
+import 'main.dart' show LocaleProvider;
 
 class GrowPlantPage extends StatefulWidget {
   const GrowPlantPage({Key? key}) : super(key: key);
 
   @override
-  _GrowPlantPageState createState() => _GrowPlantPageState();
+  State<GrowPlantPage> createState() => _GrowPlantPageState();
 }
 
 class _GrowPlantPageState extends State<GrowPlantPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _cropNameController = TextEditingController();
-  final TextEditingController _cityController = TextEditingController();
+  final _cropNameController = TextEditingController();
+  final _cityController = TextEditingController();
   String? _selectedStage;
 
-  final List<String> _stages = ['Seed', 'Sapling', 'Bud', 'Flower', 'Fruit'];
-
-  Future<void> _savePlant() async {
-    if (_formKey.currentState!.validate() && _selectedStage != null) {
-      String cropName = _cropNameController.text.trim();
-      String city = _cityController.text.trim();
-      String stage = _selectedStage!;
-      String userId = FirebaseAuth.instance.currentUser!.uid;
-
-      await FirebaseFirestore.instance.collection('plants').add({
-        'userId': userId,
-        'plantName': cropName,
-        'growthStage': stage,
-        'city': city,
-        'createdAt': FieldValue.serverTimestamp(),
-        'createdAtLocal': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Plant registered successfully!')),
-      );
-
-      Navigator.pop(context);
-    }
-  }
+  final List<String> _stages = ['seed', 'sapling', 'bud', 'flower', 'fruit'];
 
   @override
   void dispose() {
@@ -48,12 +28,59 @@ class _GrowPlantPageState extends State<GrowPlantPage> {
     super.dispose();
   }
 
+  Future<void> _savePlant() async {
+    final loc = AppLocalizations.of(context)!;
+    if (_formKey.currentState!.validate() && _selectedStage != null) {
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+      await FirebaseFirestore.instance.collection('plants').add({
+        'userId': userId,
+        'plantName': _cropNameController.text.trim(),
+        'growthStage': _selectedStage!,
+        'city': _cityController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'createdAtLocal': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(loc.plantRegisteredSuccess)));
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Grow a Plant'),
+        title: Text(loc.growPlantTitle),
         backgroundColor: Colors.green.shade900,
+        actions: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<Locale>(
+              icon: const Icon(Icons.language, color: Colors.white),
+              value: localeProv.locale,
+              items:
+                  AppLocalizations.supportedLocales.map((l) {
+                    return DropdownMenuItem(
+                      value: l,
+                      child: Text(
+                        l.languageCode.toUpperCase(),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    );
+                  }).toList(),
+              onChanged: (Locale? newLocale) {
+                if (newLocale != null) {
+                  localeProv.setLocale(newLocale);
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -63,51 +90,49 @@ class _GrowPlantPageState extends State<GrowPlantPage> {
             children: [
               TextFormField(
                 controller: _cropNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Crop Name',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: loc.cropNameLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter the crop name'
-                            : null,
+                    (v) =>
+                        v == null || v.isEmpty ? loc.errorEnterCropName : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Crop Stage',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: loc.cropStageLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 value: _selectedStage,
                 items:
-                    _stages
-                        .map(
-                          (stage) => DropdownMenuItem(
-                            value: stage,
-                            child: Text(stage),
-                          ),
-                        )
-                        .toList(),
-                onChanged: (value) => setState(() => _selectedStage = value),
+                    _stages.map((stageKey) {
+                      final stageLabel =
+                          {
+                            'seed': loc.stageSeed,
+                            'sapling': loc.stageSapling,
+                            'bud': loc.stageBud,
+                            'flower': loc.stageFlower,
+                            'fruit': loc.stageFruit,
+                          }[stageKey]!;
+                      return DropdownMenuItem(
+                        value: stageKey,
+                        child: Text(stageLabel),
+                      );
+                    }).toList(),
+                onChanged: (v) => setState(() => _selectedStage = v),
                 validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please select a crop stage'
-                            : null,
+                    (_) => _selectedStage == null ? loc.errorSelectStage : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _cityController,
-                decoration: const InputDecoration(
-                  labelText: 'City',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: loc.cityLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter the city'
-                            : null,
+                    (v) => v == null || v.isEmpty ? loc.errorEnterCity : null,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
@@ -119,9 +144,9 @@ class _GrowPlantPageState extends State<GrowPlantPage> {
                     vertical: 12,
                   ),
                 ),
-                child: const Text(
-                  'Register Plant',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                child: Text(
+                  loc.registerPlantButton,
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
             ],

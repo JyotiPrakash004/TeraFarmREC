@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+
+import 'l10n/app_localizations.dart';
+import 'main.dart' show LocaleProvider;
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -10,64 +14,106 @@ class AddProductPage extends StatefulWidget {
 }
 
 class _AddProductPageState extends State<AddProductPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
 
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController priceController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
-  String category = "Vegetables"; // Default category
+  final _nameCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  String _categoryKey = 'vegetables'; // keys: vegetables, fruits, herbs
 
-  void _addProduct() async {
-    String sellerId = _auth.currentUser!.uid;
+  Future<void> _addProduct() async {
+    final loc = AppLocalizations.of(context)!;
+    final sellerId = _auth.currentUser!.uid;
 
     await _firestore.collection('products').add({
-      'name': nameController.text.trim(),
-      'price': double.parse(priceController.text.trim()),
-      'category': category,
-      'description': descriptionController.text.trim(),
+      'name': _nameCtrl.text.trim(),
+      'price': double.tryParse(_priceCtrl.text.trim()) ?? 0.0,
+      'category': _categoryKey,
+      'description': _descCtrl.text.trim(),
       'sellerId': sellerId,
       'timestamp': FieldValue.serverTimestamp(),
     });
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text("Product Added!")));
+    ).showSnackBar(SnackBar(content: Text(loc.productAddedMessage)));
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+
+    final categoryOptions = <String>['vegetables', 'fruits', 'herbs'];
+
     return Scaffold(
-      appBar: AppBar(title: Text("Add Product")),
+      appBar: AppBar(
+        title: Text(loc.addProductPageTitle),
+        actions: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<Locale>(
+              icon: const Icon(Icons.language, color: Colors.white),
+              value: localeProv.locale,
+              items:
+                  AppLocalizations.supportedLocales.map((l) {
+                    return DropdownMenuItem(
+                      value: l,
+                      child: Text(l.languageCode.toUpperCase()),
+                    );
+                  }).toList(),
+              onChanged: (locale) {
+                if (locale != null) {
+                  localeProv.setLocale(locale);
+                }
+              },
+            ),
+          ),
+        ],
+        backgroundColor: Colors.green.shade800,
+      ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
-              controller: nameController,
-              decoration: InputDecoration(labelText: "Product Name"),
+              controller: _nameCtrl,
+              decoration: InputDecoration(labelText: loc.productNameLabel),
             ),
             TextField(
-              controller: priceController,
-              decoration: InputDecoration(labelText: "Price"),
+              controller: _priceCtrl,
+              decoration: InputDecoration(labelText: loc.priceLabel),
+              keyboardType: TextInputType.number,
             ),
-
-            DropdownButton<String>(
-              value: category,
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _categoryKey,
+              decoration: InputDecoration(labelText: loc.categoryLabel),
               items:
-                  ["Vegetables", "Fruits", "Herbs"].map((cat) {
-                    return DropdownMenuItem(value: cat, child: Text(cat));
+                  categoryOptions.map((key) {
+                    final title =
+                        {
+                          'vegetables': loc.categoryVegetables,
+                          'fruits': loc.categoryFruits,
+                          'herbs': loc.categoryHerbs,
+                        }[key]!;
+                    return DropdownMenuItem(value: key, child: Text(title));
                   }).toList(),
-              onChanged: (value) => setState(() => category = value!),
+              onChanged: (v) => setState(() => _categoryKey = v!),
             ),
-
             TextField(
-              controller: descriptionController,
-              decoration: InputDecoration(labelText: "Description"),
+              controller: _descCtrl,
+              decoration: InputDecoration(labelText: loc.descriptionLabel),
             ),
-            SizedBox(height: 20),
-            ElevatedButton(onPressed: _addProduct, child: Text("Add Product")),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _addProduct,
+              child: Text(loc.addProductButton),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+              ),
+            ),
           ],
         ),
       ),

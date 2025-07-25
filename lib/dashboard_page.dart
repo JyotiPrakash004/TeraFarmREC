@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
+
 import 'cart_page.dart';
-import 'community_page.dart';
-import 'grow_plant_page.dart'; // Now pointing to our new page.
+import 'grow_plant_page.dart';
 import 'order_list_page.dart';
 import 'list_farm_page.dart';
 import 'edit_farm_page.dart';
 import 'menu_page.dart';
-import 'home_page.dart';
-import 'shop_page.dart';
-import 'ai_page.dart';
-import 'plant_growth_analysis_page.dart'; // New: Plant growth analysis page.
+import 'plant_growth_analysis_page.dart';
+import 'l10n/app_localizations.dart';
+import 'main.dart' show LocaleProvider;
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -22,13 +22,22 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
   double earnings = 5000.0;
+
+  DateTime parseOrderDate(dynamic rawDate) {
+    if (rawDate is Timestamp) return rawDate.toDate();
+    if (rawDate is String) return DateTime.parse(rawDate);
+    throw Exception('Invalid orderDate format');
+  }
 
   @override
   Widget build(BuildContext context) {
-    String sellerId = _auth.currentUser!.uid;
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+    final sellerId = _auth.currentUser!.uid;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
@@ -41,15 +50,14 @@ class _DashboardPageState extends State<DashboardPage> {
               backgroundColor: Colors.transparent,
               elevation: 0,
               leading: Builder(
-                builder:
-                    (context) => IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.white),
-                      onPressed: () {
-                        Scaffold.of(context).openDrawer();
-                      },
-                    ),
+                builder: (ctx) {
+                  return IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.white),
+                    onPressed: () => Scaffold.of(ctx).openDrawer(),
+                  );
+                },
               ),
-              title: const SizedBox(), // Remove logo from here
+              title: const SizedBox(),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.notifications, color: Colors.white),
@@ -61,221 +69,152 @@ class _DashboardPageState extends State<DashboardPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => CartPage(cartItems: []),
+                        builder: (_) => CartPage(cartItems: []),
                       ),
                     );
                   },
                 ),
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<Locale>(
+                    icon: const Icon(Icons.language, color: Colors.white),
+                    value: localeProv.locale,
+                    items:
+                        AppLocalizations.supportedLocales
+                            .map(
+                              (l) => DropdownMenuItem(
+                                value: l,
+                                child: Text(
+                                  l.languageCode.toUpperCase(),
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                    onChanged: (locale) {
+                      if (locale != null) {
+                        localeProv.setLocale(locale);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
               ],
             ),
           ],
         ),
       ),
-      drawer: _buildDrawer(),
-      body: _buildBody(sellerId),
-    );
-  }
-
-  AppBar _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.green.shade900,
-      leading: Builder(
-        builder:
-            (context) => IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            ),
-      ),
-      title: Row(
-        children: [
-          Transform.translate(
-            offset: const Offset(-40, 5),
-            child: Image.asset(
-              "assets/top_bar.png", // Changed from terafarm_logo.png to top_bar.png
-              height: 40,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications, color: Colors.white),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: const Icon(Icons.shopping_cart, color: Colors.white),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => CartPage(cartItems: [])),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Drawer _buildDrawer() {
-    return Drawer(
-      child: SizedBox(
-        width: MediaQuery.of(context).size.width * 0.5,
-        child: MenuPage(),
-      ),
-    );
-  }
-
-  Widget _buildBody(String sellerId) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 20),
-            _buildDashboardHeader(),
-            const SizedBox(height: 20),
-            _buildBarChart(sellerId),
-            _buildEarningsSection(),
-            _buildDashboardButtons(),
-            _buildFarmSection(sellerId),
-            _buildProductListingsTable(sellerId),
-            _buildActionButtons(),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PlantGrowthAnalysisPage(),
+      drawer: Drawer(child: MenuPage()),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  loc.farmDashboardTitle,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange, // Changed to orange
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                "View Plant Growth Analysis",
-                style: TextStyle(fontSize: 16, color: Colors.white),
+              const SizedBox(height: 20),
+              _buildBarChart(sellerId, loc),
+              const SizedBox(height: 30),
+              Text(
+                "${loc.totalEarnings}: ₹${earnings.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              _buildDashboardButtons(loc),
+              _buildFarmSection(sellerId, loc),
+              _buildProductListingsTable(sellerId, loc),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PlantGrowthAnalysisPage(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  loc.viewPlantAnalysis,
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDashboardHeader() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        "Farm Dashboard",
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildEarningsSection() {
-    return Column(
-      children: [
-        const SizedBox(height: 30),
-        Text(
-          "Total Earnings: Rs.${earnings.toStringAsFixed(2)}",
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-      ],
-    );
-  }
-
-  Widget _buildBarChart(String sellerId) {
-    DateTime now = DateTime.now();
-    DateTime startOfMonth = DateTime(now.year, now.month, 1);
-    DateTime endOfMonth = DateTime(now.year, now.month + 1, 0);
+  Widget _buildBarChart(String sellerId, AppLocalizations loc) {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, 1);
+    final end = DateTime(now.year, now.month + 1, 0);
 
     return StreamBuilder<QuerySnapshot>(
       stream:
-          FirebaseFirestore.instance
+          _firestore
               .collection('orders')
               .where('sellerId', isEqualTo: sellerId)
               .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+      builder: (ctx, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return SizedBox(height: 200, child: Center(child: Text(loc.loading)));
+        }
+        if (snap.hasError) {
           return SizedBox(
             height: 200,
-            child: const Center(child: CircularProgressIndicator()),
+            child: Center(child: Text("${loc.error}: ${snap.error}")),
           );
         }
-        if (snapshot.hasError) {
-          return SizedBox(
-            height: 200,
-            child: Center(child: Text("Error: ${snapshot.error}")),
-          );
+        if (!snap.hasData) {
+          return SizedBox(height: 200, child: Center(child: Text(loc.noData)));
         }
-        if (!snapshot.hasData) {
-          return SizedBox(
-            height: 200,
-            child: const Center(child: Text("No Data")),
-          );
-        }
-        final allOrders = snapshot.data!.docs;
-        final filteredOrders =
-            allOrders.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              final orderDateRaw = data['orderDate'];
-              DateTime? date;
-              if (orderDateRaw is Timestamp) {
-                date = orderDateRaw.toDate();
-              } else if (orderDateRaw is String) {
-                try {
-                  date = DateTime.parse(orderDateRaw);
-                } catch (e) {
-                  date = null;
-                }
+
+        final orders =
+            snap.data!.docs.where((doc) {
+              try {
+                final d = parseOrderDate(doc['orderDate']);
+                return !d.isBefore(start) && !d.isAfter(end);
+              } catch (_) {
+                return false;
               }
-              if (date == null) return false;
-              return !date.isBefore(startOfMonth) && !date.isAfter(endOfMonth);
             }).toList();
 
-        Map<int, int> ordersPerDay = {
-          for (int day = 1; day <= endOfMonth.day; day++) day: 0,
-        };
-
-        for (var order in filteredOrders) {
-          final data = order.data() as Map<String, dynamic>;
-          final orderDateRaw = data['orderDate'];
-          DateTime? date;
-          if (orderDateRaw is Timestamp) {
-            date = orderDateRaw.toDate();
-          } else if (orderDateRaw is String) {
-            try {
-              date = DateTime.parse(orderDateRaw);
-            } catch (e) {
-              date = null;
-            }
-          }
-          if (date != null) {
-            ordersPerDay[date.day] = (ordersPerDay[date.day] ?? 0) + 1;
-          }
+        final counts = {for (var i = 1; i <= end.day; i++) i: 0};
+        for (var o in orders) {
+          final day = parseOrderDate(o['orderDate']).day;
+          counts[day] = (counts[day] ?? 0) + 1;
         }
 
-        List<BarChartGroupData> barGroups =
-            ordersPerDay.entries.map((entry) {
+        final bars =
+            counts.entries.map((e) {
               return BarChartGroupData(
-                x: entry.key,
+                x: e.key,
                 barRods: [
                   BarChartRodData(
-                    toY: entry.value.toDouble(),
-                    color: Colors.blue,
+                    toY: e.value.toDouble(),
                     width: 12,
                     borderRadius: BorderRadius.circular(4),
                   ),
@@ -291,51 +230,38 @@ class _DashboardPageState extends State<DashboardPage> {
             border: Border.all(color: Colors.green.shade800, width: 1.5),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Padding(
-            padding: const EdgeInsets.only(top: 30.0),
-            child: BarChart(
-              BarChartData(
-                barGroups: barGroups,
-                barTouchData: BarTouchData(enabled: false),
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      interval: 1,
-                    ),
-                  ),
-                  rightTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      interval: 1,
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 50,
-                      getTitlesWidget: (value, meta) {
-                        if (value.toInt() % 2 != 0) return const SizedBox();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(fontSize: 10),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  topTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
+          child: BarChart(
+            BarChartData(
+              barGroups: bars,
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (v, _) {
+                      return v.toInt().isEven
+                          ? Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              v.toInt().toString(),
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          )
+                          : const SizedBox();
+                    },
                   ),
                 ),
-                borderData: FlBorderData(show: false),
-                groupsSpace: 8,
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
               ),
+              gridData: FlGridData(show: false),
+              borderData: FlBorderData(show: false),
             ),
           ),
         );
@@ -343,7 +269,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildDashboardButtons() {
+  Widget _buildDashboardButtons(AppLocalizations loc) {
     return Column(
       children: [
         const SizedBox(height: 20),
@@ -352,28 +278,26 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             Column(
               children: [
-                _buildDashboardButton("List a Farm", () {
+                _dashButton(loc.listFarm, () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => ListFarmPage()),
+                    MaterialPageRoute(builder: (_) => ListFarmPage()),
                   );
-                }, Colors.orange),
+                }),
                 const SizedBox(height: 10),
-                _buildDashboardButton("Grow a Plant", () {
+                _dashButton(loc.growPlant, () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const GrowPlantPage(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const GrowPlantPage()),
                   );
-                }, Colors.orange),
+                }),
                 const SizedBox(height: 10),
-                _buildDashboardButton("Orders", () {
+                _dashButton(loc.ordersPageTitle, () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => OrderListPage()),
+                    MaterialPageRoute(builder: (_) => const OrderListPage()),
                   );
-                }, Colors.orange),
+                }),
               ],
             ),
           ],
@@ -382,39 +306,57 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildFarmSection(String sellerId) {
+  Widget _dashButton(String text, VoidCallback onTap) {
+    return ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.orange,
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 16, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildFarmSection(String sellerId, AppLocalizations loc) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 20),
-        const Text(
-          "Your Farm",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Text(
+          loc.yourFarm,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
         Center(
           child: StreamBuilder<QuerySnapshot>(
             stream:
-                FirebaseFirestore.instance
+                _firestore
                     .collection('farms')
                     .where('sellerId', isEqualTo: sellerId)
                     .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const SizedBox();
-              final farms = snapshot.data!.docs;
-              if (farms.isEmpty) {
-                return const Text("No farm registered by you.");
-              }
+            builder: (ctx, snap) {
+              if (!snap.hasData) return const SizedBox();
+              final farms = snap.data!.docs;
+              if (farms.isEmpty) return Text(loc.noFarmRegistered);
               final farm = farms.first;
-              return ElevatedButton(
+              return ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => EditFarmPage(farmId: farm.id),
+                      builder: (_) => EditFarmPage(farmId: farm.id),
                     ),
                   );
                 },
+                icon: const Icon(Icons.edit, color: Colors.white),
+                label: Text(
+                  farm['farmName'] as String? ?? loc.yourFarm,
+                  style: const TextStyle(color: Colors.white),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   padding: const EdgeInsets.symmetric(
@@ -425,17 +367,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      farm['farmName'] ?? "Your Farm",
-                      style: const TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.edit, color: Colors.white),
-                  ],
-                ),
               );
             },
           ),
@@ -444,7 +375,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildProductListingsTable(String sellerId) {
+  Widget _buildProductListingsTable(String sellerId, AppLocalizations loc) {
     return Column(
       children: [
         const SizedBox(height: 20),
@@ -458,64 +389,53 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                "Product Listings",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              Text(
+                loc.productListings,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               StreamBuilder<QuerySnapshot>(
                 stream:
-                    FirebaseFirestore.instance
+                    _firestore
                         .collection('farms')
                         .where('sellerId', isEqualTo: sellerId)
                         .snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const SizedBox();
-                  final farmDocs = snapshot.data!.docs;
-                  if (farmDocs.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text("No products found."),
-                    );
-                  }
-                  final List<DataRow> allRows = [];
-                  int rowIndex = 1;
-                  for (var doc in farmDocs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final products = data['products'] as List? ?? [];
-                    for (int i = 0; i < products.length; i++) {
-                      final product = products[i] as Map<String, dynamic>;
-                      final cropName = product['cropName'] ?? 'N/A';
-                      final stock = product['stock in kgs'] ?? '0';
-                      final price = product['pricePerKg'] ?? 'N/A';
-                      allRows.add(
+                builder: (ctx, snap) {
+                  if (!snap.hasData) return const SizedBox();
+                  final docs = snap.data!.docs;
+                  final rows = <DataRow>[];
+                  var idx = 1;
+                  for (var d in docs) {
+                    final prods =
+                        (d.data() as Map<String, dynamic>)['products']
+                            as List? ??
+                        [];
+                    for (var p in prods) {
+                      rows.add(
                         DataRow(
                           cells: [
-                            DataCell(Text(rowIndex.toString())),
-                            DataCell(Text(cropName)),
-                            DataCell(Text("$stock Kg")),
-                            DataCell(Text("Rs. $price")),
+                            DataCell(Text((idx++).toString())),
+                            DataCell(Text(p['cropName'] ?? '')),
+                            DataCell(Text("${p['stock in kgs'] ?? ''} Kg")),
+                            DataCell(Text("₹${p['pricePerKg'] ?? ''}")),
                           ],
                         ),
                       );
-                      rowIndex++;
                     }
                   }
-                  if (allRows.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text("No products found."),
-                    );
-                  }
+                  if (rows.isEmpty) return Text(loc.noProductsFound);
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
-                      columns: const [
-                        DataColumn(label: Text("#")),
-                        DataColumn(label: Text("Crop")),
-                        DataColumn(label: Text("Stock")),
-                        DataColumn(label: Text("Price per Kg")),
+                      columns: [
+                        DataColumn(label: Text(loc.tableIndex)),
+                        DataColumn(label: Text(loc.tableCrop)),
+                        DataColumn(label: Text(loc.tableStock)),
+                        DataColumn(label: Text(loc.tablePricePerKg)),
                       ],
-                      rows: allRows,
+                      rows: rows,
                     ),
                   );
                 },
@@ -524,29 +444,6 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Column(children: [const SizedBox(height: 20)]);
-  }
-
-  Widget _buildDashboardButton(
-    String text,
-    VoidCallback onPressed,
-    Color color,
-  ) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 16, color: Colors.white),
-      ),
     );
   }
 }

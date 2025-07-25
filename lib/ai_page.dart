@@ -1,21 +1,57 @@
+import 'package:TeraFarm/menu_page.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'plantcare_page.dart';
 import 'teradoc_page.dart';
 import 'recommendation_ai_page.dart';
 import 'home_page.dart';
 import 'seller_page.dart';
+import 'l10n/app_localizations.dart';
+import 'main.dart' show LocaleProvider;
 
 class AIPage extends StatelessWidget {
   const AIPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+
     return Scaffold(
+      drawer: const Drawer(child: MenuPage()),
+
       appBar: AppBar(
-        title: const Text("TeraAI", style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          loc.aiPageTitle,
+          style: const TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.green.shade800,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          // Language picker
+          DropdownButtonHideUnderline(
+            child: DropdownButton<Locale>(
+              icon: const Icon(Icons.language, color: Colors.white),
+              value: localeProv.locale,
+              items:
+                  AppLocalizations.supportedLocales.map((l) {
+                    return DropdownMenuItem(
+                      value: l,
+                      child: Text(l.languageCode.toUpperCase()),
+                    );
+                  }).toList(),
+              onChanged: (locale) {
+                if (locale != null) {
+                  localeProv.setLocale(locale);
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
       ),
+
       body: Stack(
         children: [
           Center(
@@ -26,9 +62,7 @@ class AIPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const PlantCareApp(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const PlantCareApp()),
                     );
                   },
                   icon: const Icon(
@@ -36,9 +70,9 @@ class AIPage extends StatelessWidget {
                     size: 24,
                     color: Colors.white,
                   ),
-                  label: const Text(
-                    "Tera Care AI",
-                    style: TextStyle(color: Colors.white),
+                  label: Text(
+                    loc.teraCareAI,
+                    style: const TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(200, 60),
@@ -50,9 +84,7 @@ class AIPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const TeradocApp(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const TeradocApp()),
                     );
                   },
                   icon: const Icon(
@@ -60,9 +92,9 @@ class AIPage extends StatelessWidget {
                     size: 24,
                     color: Colors.white,
                   ),
-                  label: const Text(
-                    "TeraDoc AI",
-                    style: TextStyle(color: Colors.white),
+                  label: Text(
+                    loc.teraDocAI,
+                    style: const TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(200, 60),
@@ -75,7 +107,7 @@ class AIPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => RecommendationForm(),
+                        builder: (_) => const RecommendationForm(),
                       ),
                     );
                   },
@@ -84,9 +116,9 @@ class AIPage extends StatelessWidget {
                     size: 24,
                     color: Colors.white,
                   ),
-                  label: const Text(
-                    "Tera Recommend AI",
-                    style: TextStyle(color: Colors.white),
+                  label: Text(
+                    loc.teraRecommendAI,
+                    style: const TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(200, 60),
@@ -96,6 +128,8 @@ class AIPage extends StatelessWidget {
               ],
             ),
           ),
+
+          // Bottom navigation bar
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -127,14 +161,12 @@ class AIPage extends StatelessWidget {
                       onPressed: () {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const HomePage(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const HomePage()),
                         );
                       },
-                      child: const Text(
-                        'Buyer',
-                        style: TextStyle(color: Colors.black),
+                      child: Text(
+                        loc.buyer,
+                        style: const TextStyle(color: Colors.black),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -142,7 +174,7 @@ class AIPage extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         backgroundColor: const Color(0xFF407944),
                         foregroundColor: Colors.white,
-                        side: BorderSide(color: Colors.grey, width: 2),
+                        side: BorderSide(color: Colors.grey.shade400, width: 2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -154,12 +186,10 @@ class AIPage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const SellerPage(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const SellerPage()),
                         );
                       },
-                      child: const Text('Seller'),
+                      child: Text(loc.farmer),
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton(
@@ -175,11 +205,11 @@ class AIPage extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        // Already on AI page, do nothing or show a message
+                        // already on AI page
                       },
-                      child: const Text(
-                        'AI',
-                        style: TextStyle(color: Colors.white),
+                      child: Text(
+                        loc.ai,
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
                   ],

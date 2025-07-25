@@ -1,8 +1,13 @@
+import 'package:TeraFarm/order_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+
 import 'login_page.dart';
 import 'edit_profile_page.dart';
+import 'l10n/app_localizations.dart';
+import 'main.dart' show LocaleProvider;
 
 class AccountPage extends StatefulWidget {
   const AccountPage({Key? key}) : super(key: key);
@@ -18,12 +23,12 @@ class _AccountPageState extends State<AccountPage>
   Future<Map<String, dynamic>> _fetchUserDetails() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final userDoc =
+      final doc =
           await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
               .get();
-      return userDoc.data() ?? {};
+      return doc.data() ?? {};
     }
     return {};
   }
@@ -32,34 +37,10 @@ class _AccountPageState extends State<AccountPage>
     await FirebaseAuth.instance.signOut();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
+      MaterialPageRoute(builder: (_) => const LoginPage()),
     );
   }
 
-  // Award XP and update level logic.
-  // Daily task completion awards 5 XP and weekly tasks award 10 XP.
-  // This function is for testing or syncing XP when required.
-  void _updateXP(int xpEarned) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final userRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid);
-      final userDoc = await userRef.get();
-      if (userDoc.exists) {
-        int currentXP = userDoc['xp'] ?? 0;
-        int currentLevel = userDoc['level'] ?? 2;
-        currentXP += xpEarned;
-        while (currentXP >= _getLevelUpThreshold(currentLevel)) {
-          currentXP -= _getLevelUpThreshold(currentLevel);
-          currentLevel++;
-        }
-        await userRef.update({'xp': currentXP, 'level': currentLevel});
-      }
-    }
-  }
-
-  // This helper calculates the dynamic XP threshold: increases by 5 per level.
   int _getLevelUpThreshold(int level) => 20 + (level - 1) * 5;
 
   @override
@@ -72,22 +53,51 @@ class _AccountPageState extends State<AccountPage>
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(loc.accountPageTitle),
+        backgroundColor: Colors.green.shade800,
+        actions: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<Locale>(
+              icon: const Icon(Icons.language, color: Colors.white),
+              value: localeProv.locale,
+              items:
+                  AppLocalizations.supportedLocales
+                      .map(
+                        (l) => DropdownMenuItem(
+                          value: l,
+                          child: Text(l.languageCode.toUpperCase()),
+                        ),
+                      )
+                      .toList(),
+              onChanged: (locale) {
+                if (locale != null) {
+                  localeProv.setLocale(locale);
+                }
+              },
+            ),
+          ),
+        ],
+      ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _fetchUserDetails(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return const Center(child: Text("Error loading profile"));
+          if (snap.hasError) {
+            return Center(child: Text(loc.errorLoadingProfile));
           }
 
-          final userDetails = snapshot.data ?? {};
-          int level = userDetails['level'] ?? 2;
-          int xp = userDetails['xp'] ?? 0;
-          int threshold = _getLevelUpThreshold(level);
+          final userDetails = snap.data!;
+          final level = userDetails['level'] as int? ?? 1;
+          final xp = userDetails['xp'] as int? ?? 0;
+          final threshold = _getLevelUpThreshold(level);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
@@ -95,108 +105,16 @@ class _AccountPageState extends State<AccountPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 28),
                   onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back, size: 28),
                 ),
                 Center(
-                  child: Column(
-                    children: [
-                      Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 45,
-                            backgroundColor: Colors.grey[200],
-                            backgroundImage:
-                                userDetails['profileImage'] != null
-                                    ? NetworkImage(userDetails['profileImage'])
-                                    : null,
-                            child:
-                                userDetails['profileImage'] == null
-                                    ? const Icon(Icons.person, size: 50)
-                                    : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: CircleAvatar(
-                              radius: 14,
-                              backgroundColor: Colors.orange,
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => const EditProfilePage(),
-                                    ),
-                                  );
-                                },
-                                child: const Icon(
-                                  Icons.edit,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        userDetails['username'] ?? 'User Name',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        "Buyer / Seller",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: () => _showLevelRoadmap(context),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              child: Text(
-                                "Lvl $level",
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                LinearProgressIndicator(
-                                  value: threshold > 0 ? xp / threshold : 0,
-                                  backgroundColor: Colors.grey,
-                                  color: Colors.blue,
-                                  minHeight: 5,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "$xp/$threshold XP",
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  child: _buildProfileHeader(
+                    userDetails,
+                    level,
+                    xp,
+                    threshold,
+                    loc,
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -204,38 +122,43 @@ class _AccountPageState extends State<AccountPage>
                   0,
                   _infoTile(
                     Icons.phone,
-                    userDetails['phone'] ?? '+91 00000 00000',
+                    userDetails['phone'] as String? ?? loc.defaultPhone,
                   ),
                 ),
                 _buildAnimatedTile(
                   1,
                   _infoTile(
                     Icons.email_outlined,
-                    userDetails['email'] ?? 'example@email.com',
+                    userDetails['email'] as String? ?? loc.defaultEmail,
                   ),
                 ),
                 const SizedBox(height: 20),
                 _buildAnimatedTile(
                   2,
-                  _menuTile(Icons.favorite_border, 'My Orders'),
+                  _menuTile(
+                    Icons.list_alt,
+                    loc.myOrders,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const OrderListPage(),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                _buildAnimatedTile(
-                  3,
-                  _menuTile(Icons.local_play_outlined, 'Badges'),
-                ),
+                _buildAnimatedTile(3, _menuTile(Icons.badge, loc.badges)),
                 _buildAnimatedTile(
                   4,
-                  _menuTile(Icons.location_on_outlined, 'My Addresses'),
+                  _menuTile(Icons.location_on, loc.myAddresses),
                 ),
-                _buildAnimatedTile(
-                  5,
-                  _menuTile(Icons.list_alt_rounded, 'My List'),
-                ),
+                _buildAnimatedTile(5, _menuTile(Icons.list, loc.myList)),
                 _buildAnimatedTile(
                   6,
                   _menuTile(
                     Icons.logout,
-                    'Logout',
+                    loc.logout,
                     onTap: () => _logout(context),
                     isLogout: true,
                   ),
@@ -248,13 +171,109 @@ class _AccountPageState extends State<AccountPage>
     );
   }
 
-  Widget _buildAnimatedTile(int index, Widget child) {
+  Widget _buildProfileHeader(
+    Map<String, dynamic> user,
+    int lvl,
+    int xp,
+    int thresh,
+    AppLocalizations loc,
+  ) {
+    return Column(
+      children: [
+        Stack(
+          children: [
+            CircleAvatar(
+              radius: 45,
+              backgroundColor: Colors.grey[200],
+              backgroundImage:
+                  user['profileImage'] != null
+                      ? NetworkImage(user['profileImage'])
+                      : null,
+              child:
+                  user['profileImage'] == null
+                      ? const Icon(Icons.person, size: 50)
+                      : null,
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: CircleAvatar(
+                radius: 14,
+                backgroundColor: Colors.orange,
+                child: InkWell(
+                  onTap:
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfilePage(),
+                        ),
+                      ),
+                  child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          user['username'] as String? ?? loc.defaultUserName,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        const SizedBox(height: 2),
+        Text(loc.buyerSellerLabel, style: const TextStyle(color: Colors.grey)),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => _showLevelRoadmap(context, loc),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                child: Text(
+                  '${loc.levelLabel} $lvl',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LinearProgressIndicator(
+                    value: thresh > 0 ? xp / thresh : 0,
+                    backgroundColor: Colors.grey,
+                    color: Colors.blue,
+                    minHeight: 5,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$xp/$thresh ${loc.xpLabel}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnimatedTile(int idx, Widget child) {
     return AnimatedSlide(
       offset: _animate ? Offset.zero : const Offset(0, 0.3),
-      duration: Duration(milliseconds: 300 + (index * 100)),
+      duration: Duration(milliseconds: 300 + idx * 100),
       curve: Curves.easeOut,
       child: AnimatedOpacity(
-        duration: Duration(milliseconds: 300 + (index * 100)),
+        duration: Duration(milliseconds: 300 + idx * 100),
         opacity: _animate ? 1 : 0,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -294,58 +313,56 @@ class _AccountPageState extends State<AccountPage>
     );
   }
 
-  void _showLevelRoadmap(BuildContext context) {
+  void _showLevelRoadmap(BuildContext context, AppLocalizations loc) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       isScrollControlled: true,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          expand: false,
-          builder: (context, scrollController) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Center(
-                    child: Text(
-                      "🎯 Level Roadmap",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+      builder:
+          (_) => DraggableScrollableSheet(
+            expand: false,
+            builder:
+                (_, ctrl) => SingleChildScrollView(
+                  controller: ctrl,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Text(
+                          loc.levelRoadmapTitle,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      ...List.generate(20, (i) {
+                        final level = i + 1;
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                level <= 20 ? Colors.green : Colors.grey,
+                            child: Text('$level'),
+                          ),
+                          title: Text('${loc.levelLabel} $level'),
+                          subtitle: Text(loc.rewardToBeAnnounced),
+                          trailing:
+                              level == 20
+                                  ? const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.blue,
+                                  )
+                                  : null,
+                        );
+                      }),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  ...List.generate(10, (index) {
-                    int level = index + 1;
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor:
-                            level <= 20 ? Colors.green : Colors.grey,
-                        child: Text("$level"),
-                      ),
-                      title: Text("Level $level"),
-                      subtitle: Text("Reward: To be announced"),
-                      trailing:
-                          level == 20
-                              ? const Icon(
-                                Icons.check_circle,
-                                color: Colors.blue,
-                              )
-                              : null,
-                    );
-                  }),
-                ],
-              ),
-            );
-          },
-        );
-      },
+                ),
+          ),
     );
   }
 }

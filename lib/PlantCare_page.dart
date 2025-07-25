@@ -1,130 +1,157 @@
+// PlantCare_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
+
+import 'l10n/app_localizations.dart';
+import 'address_map_picker.dart';
+import 'main.dart' show LocaleProvider;
 
 void main() {
-  runApp(const PlantCareApp());
+  runApp(PlantCareApp());
 }
 
 class PlantCareApp extends StatelessWidget {
   const PlantCareApp({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'AgriGuru Farm AI',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+    return ChangeNotifierProvider(
+      create: (_) => LocaleProvider(const Locale('en')),
+      child: Consumer<LocaleProvider>(
+        builder: (context, localeProv, _) {
+          final loc = AppLocalizations.of(context)!;
+          return MaterialApp(
+            locale: localeProv.locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            title: loc.appTitle,
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              primarySwatch: Colors.green,
+              scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+            ),
+            home: const FarmAiPage(),
+          );
+        },
       ),
-      home: const FarmAiPage(),
     );
   }
 }
 
 class FarmAiPage extends StatefulWidget {
   const FarmAiPage({super.key});
-
   @override
   State<FarmAiPage> createState() => _FarmAiPageState();
 }
 
 class _FarmAiPageState extends State<FarmAiPage> {
-  final _cityController = TextEditingController(text: 'Chennai');
+  final _cityController = TextEditingController();
   final _plantController = TextEditingController(text: 'Carrot');
 
-  bool _loadingWeather = false;
-  bool _loadingAdvice = false;
-
-  double? _temperature;
+  bool _loadingWeather = false, _loadingAdvice = false;
+  double? _temperature, _latitude, _longitude;
   int? _humidity;
-  String? _condition;
-  String? _advice;
-
-  String _selectedLanguage = 'English';
-  final List<String> _languages = ['English', 'Hindi', 'Tamil'];
+  String? _condition, _advice, _currentAddress;
 
   late GenerativeModel _geminiModel;
-
-  /// UI strings in each language
-  final Map<String, Map<String, String>> _uiText = {
-    'appTitle': {
-      'English': 'AgriGuru Farm AI',
-      'Hindi': 'एग्रीगुरु फार्म एआई',
-      'Tamil': 'அக்ரி குரு பண்ணை ஏஐ',
-    },
-    'enterCity': {
-      'English': 'Enter City',
-      'Hindi': 'शहर दर्ज करें',
-      'Tamil': 'நகரத்தை உள்ளிடவும்',
-    },
-    'getWeather': {
-      'English': 'Get Weather',
-      'Hindi': 'मौसम प्राप्त करें',
-      'Tamil': 'வானிலை பெறவும்',
-    },
-    'enterPlant': {
-      'English': 'Enter Plant Name',
-      'Hindi': 'पौधे का नाम दर्ज करें',
-      'Tamil': 'தாவரப் பெயரை உள்ளிடவும்',
-    },
-    'getTips': {
-      'English': 'Get Sustainable Tips',
-      'Hindi': 'स्थायी सुझाव प्राप्त करें',
-      'Tamil': 'நிலைத்திருக்கும் குறிப்புகள் பெறவும்',
-    },
-    'tryAnother': {
-      'English': 'Try Another Plant',
-      'Hindi': 'एक और प्रयास करें',
-      'Tamil': 'மறு முயற்சி செய்க',
-    },
-  };
-  String _t(String key) => _uiText[key]![_selectedLanguage]!;
 
   @override
   void initState() {
     super.initState();
     const geminiApiKey = 'AIzaSyDOCRunTsXQqmxo6oysjhWaxgrxavoUkrs';
-    final generationConfig = GenerationConfig(
-      temperature: 0.7,
-      topP: 0.9,
-      topK: 40,
-      maxOutputTokens: 256,
-    );
     _geminiModel = GenerativeModel(
       model: 'gemini-2.0-flash',
       apiKey: geminiApiKey,
-      generationConfig: generationConfig,
+      generationConfig: GenerationConfig(
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 40,
+        maxOutputTokens: 256,
+      ),
     );
   }
 
+  /// Get current device location for centering the map picker
+  Future<LatLng> _getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) throw Exception("Location services disabled.");
+    var perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.denied)
+        throw Exception("Permissions denied.");
+    }
+    if (perm == LocationPermission.deniedForever) {
+      throw Exception("Permissions permanently denied.");
+    }
+    final pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    return LatLng(pos.latitude, pos.longitude);
+  }
+
+  /// Open your AddressMapPicker in a bottom sheet
+  Future<void> _openMapPicker() async {
+    LatLng initial;
+    try {
+      initial = await _getCurrentLocation();
+    } catch (_) {
+      initial = const LatLng(13.0827, 80.2707); // fallback
+    }
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => AddressMapPicker(initialLocation: initial),
+    );
+    if (result != null) {
+      setState(() {
+        _latitude = result['lat'] as double;
+        _longitude = result['lng'] as double;
+        _currentAddress = result['address'] as String;
+        _cityController.text = _currentAddress!;
+      });
+    }
+  }
+
+  /// Fetch only current weather (no forecast)
   Future<void> _getWeather() async {
     setState(() {
       _loadingWeather = true;
       _advice = null;
     });
 
-    final city = _cityController.text.trim();
-    final uri = Uri.https('api.openweathermap.org', '/data/2.5/weather', {
-      'q': city,
-      'appid': '5a0ae185b7294f390b903805280d65c0',
-      'units': 'metric',
-    });
+    final key = '994SBTQFYTXZJPS5YLZP5FWGW';
+    final query =
+        (_latitude != null && _longitude != null)
+            ? '$_latitude,$_longitude'
+            : _cityController.text.trim();
+    final uri = Uri.https(
+      'weather.visualcrossing.com',
+      '/VisualCrossingWebServices/rest/services/timeline/$query',
+      {
+        'unitGroup': 'metric',
+        'include': 'current',
+        'key': key,
+        'contentType': 'json',
+      },
+    );
 
     try {
       final res = await http.get(uri);
-      if (res.statusCode == 200) {
-        final data = json.decode(res.body);
-        setState(() {
-          _temperature = (data['main']['temp'] as num).toDouble();
-          _humidity = data['main']['humidity'];
-          _condition = (data['weather'] as List).first['description'];
-        });
-      } else {
+      if (res.statusCode != 200) {
         throw Exception('Weather fetch failed: ${res.statusCode}');
       }
+      final data = json.decode(res.body) as Map<String, dynamic>;
+      final curr = data['currentConditions'] as Map<String, dynamic>;
+      setState(() {
+        _temperature = (curr['temp'] as num).toDouble();
+        _humidity = (curr['humidity'] as num).toInt();
+        _condition = curr['conditions'] as String;
+      });
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -134,73 +161,51 @@ class _FarmAiPageState extends State<FarmAiPage> {
     }
   }
 
-  /// Translate [text] into the selected language, using an instruction in that language.
-  Future<String> _translate(String text) async {
-    if (_selectedLanguage == 'English') return text;
-
-    String instruction;
-    if (_selectedLanguage == 'Hindi') {
-      instruction = 'निम्नलिखित पाठ का अनुवाद हिंदी में करें, अर्थ बनाए रखें:';
-    } else {
-      instruction =
-          'பின்வரும் உரையை தமிழ் மொழியில் மொழிபெயர்க்கவும், பொருள் மாறாமிருக்கும் வடிவில்:';
-    }
-
-    final prompt = '$instruction\n\n$text';
-    final content = Content.multi([TextPart(prompt)]);
-    final response = await _geminiModel.generateContent([content]);
-    final translated =
-        response.text ??
-        (response.candidates.isNotEmpty
-            ? response.candidates.first.content as String
-            : '');
-    return translated.trim();
+  Future<String> _translatePrompt(String text) async {
+    final loc = AppLocalizations.of(context)!;
+    if (loc.localeName == 'en') return text;
+    final prompt = '${loc.translationInstruction}\n\n$text';
+    final resp = await _geminiModel.generateContent([
+      Content.multi([TextPart(prompt)]),
+    ]);
+    return (resp.text ?? resp.candidates.first.content as String).trim();
   }
 
   Future<void> _getAdvice() async {
     if (_temperature == null || _condition == null) {
-      final msg =
-          _selectedLanguage == 'Hindi'
-              ? 'पहले मौसम प्राप्त करें।'
-              : _selectedLanguage == 'Tamil'
-              ? 'முதலில் வானிலை பெறவும்.'
-              : 'Please fetch weather first.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.fetchWeatherFirst),
+        ),
+      );
       return;
     }
-
     setState(() {
       _loadingAdvice = true;
       _advice = null;
     });
 
-    // Base English prompt
     final basePrompt = '''
 You are an expert agricultural advisor.
 Given:
 • Plant: ${_plantController.text.trim()}
-• Temperature: ${_temperature!.toStringAsFixed(1)}°C
-• Humidity: $_humidity%
-• Weather condition: $_condition
+• Location: ${_currentAddress ?? _cityController.text.trim()}
+• Current: ${_temperature!.toStringAsFixed(1)}°C, $_humidity% RH, $_condition
 
-Provide 4 short, emoji-enhanced, sustainable farming tips.
+Provide creative, emoji‑enhanced, actionable tips. Short, engaging, specific.
+Include YouTube links in the user’s language.
 ''';
 
     try {
-      // 1) translate the prompt entirely into target language (or leave English)
-      final prompt = await _translate(basePrompt);
-
-      // 2) send that prompt to Gemini to generate tips
-      final content = Content.multi([TextPart(prompt)]);
-      final response = await _geminiModel.generateContent([content]);
-      final output =
-          response.text ??
-          (response.candidates.isNotEmpty
-              ? response.candidates.first.content as String
-              : '');
-
+      final prompt = await _translatePrompt(basePrompt);
+      final resp = await _geminiModel.generateContent([
+        Content.multi([TextPart(prompt)]),
+      ]);
       setState(() {
-        _advice = output.replaceAll('*', '').trim();
+        _advice =
+            (resp.text ?? resp.candidates.first.content as String)
+                .replaceAll('*', '')
+                .trim();
       });
     } catch (e) {
       ScaffoldMessenger.of(
@@ -213,73 +218,78 @@ Provide 4 short, emoji-enhanced, sustainable farming tips.
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+
     return Scaffold(
-      appBar: AppBar(title: Text(_t('appTitle')), centerTitle: true),
+      appBar: AppBar(
+        title: Text(loc.appTitle),
+        actions: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<Locale>(
+              icon: const Icon(Icons.language, color: Colors.black),
+              value: localeProv.locale,
+              items:
+                  AppLocalizations.supportedLocales.map((l) {
+                    return DropdownMenuItem(
+                      value: l,
+                      child: Text(
+                        l.languageCode.toUpperCase(),
+                        style: const TextStyle(color: Colors.black),
+                      ),
+                    );
+                  }).toList(),
+              onChanged: (l) {
+                if (l != null) localeProv.setLocale(l);
+              },
+            ),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Language dropdown
-            Align(
-              alignment: Alignment.centerRight,
-              child: DropdownButton<String>(
-                value: _selectedLanguage,
-                items:
-                    _languages
-                        .map(
-                          (lang) =>
-                              DropdownMenuItem(value: lang, child: Text(lang)),
-                        )
-                        .toList(),
-                onChanged: (v) {
-                  setState(() => _selectedLanguage = v!);
-                },
-              ),
-            ),
-
-            const SizedBox(height: 8),
+            // City field: manual or map pick, onSubmitted fires weather
             TextField(
               controller: _cityController,
               decoration: InputDecoration(
-                labelText: _t('enterCity'),
-                border: const OutlineInputBorder(),
+                labelText: loc.enterCity,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.location_on),
+                  onPressed: _openMapPicker,
+                ),
               ),
+              onChanged: (_) {
+                // manual typing clears prior coords
+                setState(() {
+                  _latitude = null;
+                  _longitude = null;
+                  _currentAddress = null;
+                });
+              },
+              onSubmitted: (_) => _getWeather(),
             ),
-
             const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _loadingWeather ? null : _getWeather,
-                child: Text(_loadingWeather ? '...' : _t('getWeather')),
-              ),
+            ElevatedButton(
+              onPressed: _loadingWeather ? null : _getWeather,
+              child: Text(_loadingWeather ? loc.loading : loc.getWeather),
             ),
 
+            // Weather display
             if (_temperature != null) ...[
               const SizedBox(height: 16),
               Card(
-                color: Colors.green.shade50,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.thermostat,
-                        size: 40,
-                        color: Colors.green,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('${_temperature!.toStringAsFixed(1)} °C'),
-                            Text('${_humidity}%'),
-                            Text(
-                              '${_condition![0].toUpperCase()}${_condition!.substring(1)}',
-                            ),
-                          ],
-                        ),
+                      Text('${_temperature!.toStringAsFixed(1)} °C'),
+                      Text('$_humidity% RH'),
+                      Text(
+                        '${_condition![0].toUpperCase()}${_condition!.substring(1)}',
                       ),
                     ],
                   ),
@@ -288,36 +298,26 @@ Provide 4 short, emoji-enhanced, sustainable farming tips.
             ],
 
             const SizedBox(height: 24),
+            // Plant input + advice
             TextField(
               controller: _plantController,
-              decoration: InputDecoration(
-                labelText: _t('enterPlant'),
-                border: const OutlineInputBorder(),
-              ),
+              decoration: InputDecoration(labelText: loc.enterPlant),
             ),
-
             const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed:
-                    (_loadingAdvice || _temperature == null)
-                        ? null
-                        : _getAdvice,
-                child: Text(_loadingAdvice ? '...' : _t('getTips')),
-              ),
+            ElevatedButton(
+              onPressed:
+                  (_loadingAdvice || _temperature == null) ? null : _getAdvice,
+              child: Text(_loadingAdvice ? loc.loading : loc.getTips),
             ),
 
             if (_advice != null) ...[
               const SizedBox(height: 16),
               Card(
-                color: Colors.green.shade50,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(_advice!, style: const TextStyle(fontSize: 16)),
+                  child: Text(_advice!),
                 ),
               ),
-
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
@@ -328,10 +328,7 @@ Provide 4 short, emoji-enhanced, sustainable farming tips.
                     _advice = null;
                   });
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                ),
-                child: Text(_t('tryAnother')),
+                child: Text(loc.tryAnother),
               ),
             ],
           ],

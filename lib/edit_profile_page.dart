@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+
+import 'l10n/app_localizations.dart';
+import 'main.dart' show LocaleProvider;
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({Key? key}) : super(key: key);
@@ -15,121 +19,151 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _localityController = TextEditingController();
-  final TextEditingController _farmNameController = TextEditingController();
+  final _usernameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _localityCtrl = TextEditingController();
+  final _farmNameCtrl = TextEditingController();
   File? _selectedImage;
   String? _imageUrl;
-
   bool _animate = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) setState(() => _animate = true);
     });
   }
 
   Future<void> _loadUserData() async {
+    final loc = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final userDoc =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get();
-      final userData = userDoc.data() ?? {};
-
-      // Fetch farm name if the user has a farm
-      final farmQuery =
-          await FirebaseFirestore.instance
-              .collection('farms')
-              .where('sellerId', isEqualTo: user.uid)
-              .limit(1)
-              .get();
-      final farmName =
-          farmQuery.docs.isNotEmpty ? farmQuery.docs.first['farmName'] : null;
-
-      setState(() {
-        _usernameController.text = userData['username'] ?? '';
-        _emailController.text = userData['email'] ?? '';
-        _phoneController.text = userData['phone'] ?? '';
-        _localityController.text = userData['locality'] ?? '';
-        _farmNameController.text = farmName ?? '';
-        _imageUrl = userData['profileImage'];
-      });
-    }
+    if (user == null) return;
+    final userDoc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+    final data = userDoc.data() ?? {};
+    final farmQuery =
+        await FirebaseFirestore.instance
+            .collection('farms')
+            .where('sellerId', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+    final farmName =
+        farmQuery.docs.isNotEmpty ? farmQuery.docs.first['farmName'] : '';
+    setState(() {
+      _usernameCtrl.text = data['username'] ?? '';
+      _emailCtrl.text = data['email'] ?? '';
+      _phoneCtrl.text = data['phone'] ?? '';
+      _localityCtrl.text = data['locality'] ?? '';
+      _farmNameCtrl.text = farmName ?? '';
+      _imageUrl = data['profileImage'];
+    });
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
+    final loc = AppLocalizations.of(context)!;
+    try {
+      final img = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (img != null) setState(() => _selectedImage = File(img.path));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.errorPickingImage(e.toString()))),
+      );
     }
   }
 
   Future<void> _saveProfile() async {
+    final loc = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
-
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      String? imageUrl = _imageUrl;
+    if (user == null) return;
 
+    String? imageUrl = _imageUrl;
+    if (_selectedImage != null) {
       try {
-        if (_selectedImage != null) {
-          final storageRef = FirebaseStorage.instance.ref().child(
-            'profile_images/${user.uid}_profile_image.jpg',
-          );
-          final uploadTask = storageRef.putFile(_selectedImage!);
-          final snapshot = await uploadTask.whenComplete(() => null);
-          imageUrl = await snapshot.ref.getDownloadURL();
-        }
-
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .update({
-              'username': _usernameController.text.trim(),
-              'email': _emailController.text.trim(),
-              'phone': _phoneController.text.trim(),
-              'locality': _localityController.text.trim(),
-              'profileImage': imageUrl,
-            });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile updated successfully!")),
+        final ref = FirebaseStorage.instance.ref().child(
+          'profile_images/${user.uid}_profile_image.jpg',
         );
-        Navigator.pop(context);
+        final task = await ref.putFile(_selectedImage!);
+        imageUrl = await task.ref.getDownloadURL();
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error saving profile: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(loc.errorUploadingProfileImage(e.toString()))),
+        );
+        return;
       }
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+            'username': _usernameCtrl.text.trim(),
+            'email': _emailCtrl.text.trim(),
+            'phone': _phoneCtrl.text.trim(),
+            'locality': _localityCtrl.text.trim(),
+            'profileImage': imageUrl,
+          });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(loc.profileUpdatedSuccess)));
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.errorSavingProfile(e.toString()))),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 244, 143, 143),
+      backgroundColor: const Color(0xFFF48F8F),
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 244, 143, 143),
+        backgroundColor: const Color(0xFFF48F8F),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<Locale>(
+              icon: const Icon(Icons.language, color: Colors.white),
+              value: localeProv.locale,
+              items:
+                  AppLocalizations.supportedLocales
+                      .map(
+                        (l) => DropdownMenuItem(
+                          value: l,
+                          child: Text(
+                            l.languageCode.toUpperCase(),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      )
+                      .toList(),
+              onChanged: (locale) {
+                if (locale != null) {
+                  localeProv.setLocale(locale);
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -173,28 +207,42 @@ class _EditProfilePageState extends State<EditProfilePage>
               const SizedBox(height: 20),
               _animatedFadeSlide(
                 1,
-                child: _buildEditableField("Username", _usernameController),
+                child: _buildField(
+                  loc.usernameLabel,
+                  _usernameCtrl,
+                  loc.errorEmptyField,
+                ),
               ),
               _animatedFadeSlide(
                 2,
-                child: _buildEditableField(
-                  "My email Address",
-                  _emailController,
+                child: _buildField(
+                  loc.emailLabel,
+                  _emailCtrl,
+                  loc.errorEmptyField,
                 ),
               ),
               _animatedFadeSlide(
                 3,
-                child: _buildEditableField("Phone number", _phoneController),
+                child: _buildField(
+                  loc.phoneLabel,
+                  _phoneCtrl,
+                  loc.errorEmptyField,
+                ),
               ),
               _animatedFadeSlide(
                 4,
-                child: _buildEditableField("Locality", _localityController),
+                child: _buildField(
+                  loc.localityLabel,
+                  _localityCtrl,
+                  loc.errorEmptyField,
+                ),
               ),
               _animatedFadeSlide(
                 5,
-                child: _buildEditableField(
-                  "My Farm's name",
-                  _farmNameController,
+                child: _buildField(
+                  loc.farmNameLabel,
+                  _farmNameCtrl,
+                  loc.errorEmptyField,
                 ),
               ),
               const SizedBox(height: 20),
@@ -213,7 +261,7 @@ class _EditProfilePageState extends State<EditProfilePage>
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text("Save"),
+                  child: Text(loc.saveButton),
                 ),
               ),
             ],
@@ -223,25 +271,25 @@ class _EditProfilePageState extends State<EditProfilePage>
     );
   }
 
-  Widget _buildEditableField(String label, TextEditingController controller) {
+  Widget _buildField(
+    String label,
+    TextEditingController ctrl,
+    String errorMsg,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.black, fontSize: 16)),
         const SizedBox(height: 5),
         TextFormField(
-          controller: controller,
+          controller: ctrl,
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             suffixIcon: const Icon(Icons.edit, color: Colors.black),
           ),
-          validator:
-              (value) =>
-                  value == null || value.isEmpty
-                      ? "This field cannot be empty"
-                      : null,
+          validator: (v) => v == null || v.isEmpty ? errorMsg : null,
         ),
         const SizedBox(height: 15),
       ],
@@ -251,13 +299,13 @@ class _EditProfilePageState extends State<EditProfilePage>
   Widget _animatedFadeSlide(int index, {required Widget child}) {
     return AnimatedSlide(
       offset: _animate ? Offset.zero : const Offset(0, 0.3),
-      duration: Duration(milliseconds: 300 + (index * 100)),
+      duration: Duration(milliseconds: 300 + index * 100),
       curve: Curves.easeOut,
       child: AnimatedOpacity(
-        duration: Duration(milliseconds: 300 + (index * 100)),
         opacity: _animate ? 1 : 0,
+        duration: Duration(milliseconds: 300 + index * 100),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6.0),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: child,
         ),
       ),

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+
+import 'l10n/app_localizations.dart';
+import 'main.dart' show LocaleProvider;
 
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({Key? key}) : super(key: key);
@@ -13,7 +17,6 @@ class _LeaderboardPageState extends State<LeaderboardPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
-  // Assume each tile has an approximate fixed height
   final double _tileHeight = 80.0;
   int _currentUserIndex = -1;
   bool _showFloatingYou = false;
@@ -32,7 +35,6 @@ class _LeaderboardPageState extends State<LeaderboardPage>
     super.dispose();
   }
 
-  // Checks if the current user's tile is visible in the list
   void _scrollListener() {
     if (_currentUserIndex == -1) return;
     final viewportStart = _scrollController.offset;
@@ -40,28 +42,19 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         _scrollController.offset + MediaQuery.of(context).size.height;
     final itemOffset = _currentUserIndex * _tileHeight;
 
-    // If the current user's tile is not in the viewport, show the floating tile
     final isVisible = itemOffset >= viewportStart && itemOffset < viewportEnd;
     if (isVisible && _showFloatingYou) {
-      setState(() {
-        _showFloatingYou = false;
-      });
+      setState(() => _showFloatingYou = false);
     } else if (!isVisible && !_showFloatingYou) {
-      setState(() {
-        _showFloatingYou = true;
-      });
+      setState(() => _showFloatingYou = true);
     }
   }
 
-  // Fetch users sorted by xp descending.
-  // For "Local", we filter by a provided location string.
   Future<QuerySnapshot> _fetchUsers(
     bool isGlobal,
     String? currentUserLocation,
   ) {
-    CollectionReference usersRef = FirebaseFirestore.instance.collection(
-      'users',
-    );
+    final usersRef = FirebaseFirestore.instance.collection('users');
     Query query = usersRef.orderBy('xp', descending: true);
     if (!isGlobal && currentUserLocation != null) {
       query = query.where('location', isEqualTo: currentUserLocation);
@@ -71,18 +64,44 @@ class _LeaderboardPageState extends State<LeaderboardPage>
 
   @override
   Widget build(BuildContext context) {
-    // Get current user and, if applicable, their location.
-    final currentUser = FirebaseAuth.instance.currentUser;
-    // For demonstration, you might fetch location from the current user's document.
-    String? currentUserLocation =
-        null; // Replace with actual location if available
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+
+    final currentUserLocation = null; // fetch if you have it
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Leaderboard"),
+        title: Text(loc.leaderboardTitle),
+        actions: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<Locale>(
+              icon: const Icon(
+                Icons.language,
+                color: Color.fromARGB(255, 9, 0, 0),
+              ),
+              value: localeProv.locale,
+              items:
+                  AppLocalizations.supportedLocales.map((l) {
+                    return DropdownMenuItem(
+                      value: l,
+                      child: Text(
+                        l.languageCode.toUpperCase(),
+                        style: const TextStyle(
+                          color: Color.fromARGB(255, 0, 0, 0),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+              onChanged: (Locale? newLocale) {
+                if (newLocale != null) localeProv.setLocale(newLocale);
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [Tab(text: "Global"), Tab(text: "Local")],
+          tabs: [Tab(text: loc.tabGlobal), Tab(text: loc.tabLocal)],
         ),
       ),
       body: TabBarView(
@@ -90,10 +109,12 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         children: [
           _buildLeaderboard(
             isGlobal: true,
+            loc: loc,
             currentUserLocation: currentUserLocation,
           ),
           _buildLeaderboard(
             isGlobal: false,
+            loc: loc,
             currentUserLocation: currentUserLocation,
           ),
         ],
@@ -103,20 +124,19 @@ class _LeaderboardPageState extends State<LeaderboardPage>
 
   Widget _buildLeaderboard({
     required bool isGlobal,
+    required AppLocalizations loc,
     String? currentUserLocation,
   }) {
     return FutureBuilder<QuerySnapshot>(
       future: _fetchUsers(isGlobal, currentUserLocation),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: Text(loc.loading));
         }
         if (snapshot.hasError || !snapshot.hasData) {
-          return const Center(child: Text("Error loading leaderboard"));
+          return Center(child: Text(loc.errorLoadingLeaderboard));
         }
-        List<DocumentSnapshot> docs = snapshot.data!.docs;
-
-        // Determine the index (rank) of the current user
+        final docs = snapshot.data!.docs;
         _currentUserIndex = docs.indexWhere(
           (doc) => doc.id == FirebaseAuth.instance.currentUser?.uid,
         );
@@ -127,23 +147,22 @@ class _LeaderboardPageState extends State<LeaderboardPage>
               controller: _scrollController,
               itemCount: docs.length,
               itemBuilder: (context, index) {
-                final userData = docs[index].data() as Map<String, dynamic>;
-                final int rank = index + 1;
-                final bool isCurrentUser =
+                final userData = docs[index].data()! as Map<String, dynamic>;
+                final rank = index + 1;
+                final isCurrent =
                     docs[index].id == FirebaseAuth.instance.currentUser?.uid;
                 return _buildAnimatedTile(
                   index,
-                  _leaderboardTile(rank, userData, isCurrentUser),
+                  _leaderboardTile(loc, rank, userData, isCurrent),
                 );
               },
             ),
-            // Floating "You" row if current user's tile is scrolled out of view
             if (_showFloatingYou && _currentUserIndex != -1)
               Positioned(
                 bottom: 16,
                 left: 16,
                 right: 16,
-                child: _floatingCurrentUser(docs[_currentUserIndex]),
+                child: _floatingCurrentUser(loc, docs[_currentUserIndex]),
               ),
           ],
         );
@@ -152,17 +171,16 @@ class _LeaderboardPageState extends State<LeaderboardPage>
   }
 
   Widget _buildAnimatedTile(int index, Widget child) {
-    // Animation delay increases for later tiles
-    final animationDuration = Duration(milliseconds: 300 + (index * 100));
+    final delay = Duration(milliseconds: 300 + index * 100);
     return AnimatedSlide(
       offset: const Offset(0, 0.3),
-      duration: animationDuration,
+      duration: delay,
       curve: Curves.easeOut,
       child: AnimatedOpacity(
-        duration: animationDuration,
+        duration: delay,
         opacity: 1,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           child: SizedBox(height: _tileHeight, child: child),
         ),
       ),
@@ -170,9 +188,10 @@ class _LeaderboardPageState extends State<LeaderboardPage>
   }
 
   Widget _leaderboardTile(
+    AppLocalizations loc,
     int rank,
     Map<String, dynamic> userData,
-    bool isCurrentUser,
+    bool isCurrent,
   ) {
     return ListTile(
       leading: CircleAvatar(
@@ -183,19 +202,19 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         child:
             userData['profileImage'] == null ? const Icon(Icons.person) : null,
       ),
-      title: Text(userData['username'] ?? 'Unknown'),
-      subtitle: Text("${userData['xp'] ?? 0} XP"),
+      title: Text(userData['username'] ?? loc.unknownUser),
+      subtitle: Text('${userData['xp'] ?? 0} XP'),
       trailing: Text(
-        "#$rank",
+        '#$rank',
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
-      tileColor: isCurrentUser ? Colors.blue.shade100 : null,
+      tileColor: isCurrent ? Colors.blue.shade100 : null,
     );
   }
 
-  Widget _floatingCurrentUser(DocumentSnapshot doc) {
-    Map<String, dynamic> userData = doc.data() as Map<String, dynamic>;
-    int rank = _currentUserIndex + 1;
+  Widget _floatingCurrentUser(AppLocalizations loc, DocumentSnapshot doc) {
+    final userData = doc.data()! as Map<String, dynamic>;
+    final rank = _currentUserIndex + 1;
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -211,10 +230,10 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                   ? const Icon(Icons.person)
                   : null,
         ),
-        title: Text(userData['username'] ?? 'You'),
-        subtitle: Text("${userData['xp'] ?? 0} XP"),
+        title: Text(userData['username'] ?? loc.youLabel),
+        subtitle: Text('${userData['xp'] ?? 0} XP'),
         trailing: Text(
-          "#$rank",
+          '#$rank',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),

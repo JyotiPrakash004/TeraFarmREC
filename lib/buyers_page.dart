@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+
 import 'Product_page.dart';
 import 'home_page.dart';
 import 'menu_page.dart';
 import 'cart_page.dart';
 import 'community_page.dart';
 import 'shop_page.dart';
+import 'l10n/app_localizations.dart';
+import 'main.dart' show LocaleProvider;
 
 class BuyersPage extends StatefulWidget {
   const BuyersPage({super.key});
@@ -15,100 +19,104 @@ class BuyersPage extends StatefulWidget {
 }
 
 class _BuyersPageState extends State<BuyersPage> {
-  final List<Map<String, String>> categories = [
-    {"name": "Onion", "image": "assets/onion.png"},
-    {"name": "Tomato", "image": "assets/tomato.png"},
-    {"name": "Beans", "image": "assets/beans.png"},
-    {"name": "Greens", "image": "assets/greens.png"},
-  ];
-
-  void _onCategorySelected(String category) {
-    print("Filtering farms by: $category");
-  }
-
-  void _onFarmSelected(DocumentSnapshot farmDoc) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => ProductPage(farmId: farmDoc.id)),
-    );
-  }
-
   int _selectedIndex = 2;
 
   void _onNavItemTapped(int index) {
-    if (index == 0) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
-    } else if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => CommunityPage()),
-      );
-    } else if (index == 2) {
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ShopPage()),
-      );
+    Widget? dest;
+    switch (index) {
+      case 0:
+        dest = const HomePage();
+        break;
+      case 1:
+        dest = const CommunityPage();
+        break;
+      case 3:
+        dest = const ShopPage();
+        break;
     }
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (dest != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => dest!));
+    }
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final localeProv = Provider.of<LocaleProvider>(context, listen: false);
+
+    final categories = <Map<String, String>>[
+      {'key': 'onion', 'name': loc.catOnion, 'image': 'assets/onion.png'},
+      {'key': 'tomato', 'name': loc.catTomato, 'image': 'assets/tomato.png'},
+      {'key': 'beans', 'name': loc.catBeans, 'image': 'assets/beans.png'},
+      {'key': 'greens', 'name': loc.catGreens, 'image': 'assets/greens.png'},
+    ];
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.green.shade900,
         leading: Builder(
-          builder:
-              (context) => IconButton(
-                icon: Icon(Icons.menu, color: Colors.white),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              ),
+          builder: (ctx) {
+            return IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () => Scaffold.of(ctx).openDrawer(),
+            );
+          },
         ),
-        title: Row(
-          children: [
-            Transform.translate(
-              offset: Offset(-40, 5),
-              child: Image.asset("assets/terafarm_logo.png", height: 40),
-            ),
-          ],
-        ),
+        title: Image.asset("assets/terafarm_logo.png", height: 40),
         actions: [
           IconButton(
-            icon: Icon(Icons.notifications, color: Colors.white),
+            icon: const Icon(Icons.notifications, color: Colors.white),
             onPressed: () {},
           ),
           IconButton(
-            icon: Icon(Icons.shopping_cart, color: Colors.white),
+            icon: const Icon(Icons.shopping_cart, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CartPage(cartItems: []),
+                  builder: (_) => const CartPage(cartItems: []),
                 ),
               );
             },
           ),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<Locale>(
+              icon: const Icon(Icons.language, color: Colors.white),
+              value: localeProv.locale,
+              items:
+                  AppLocalizations.supportedLocales
+                      .map(
+                        (l) => DropdownMenuItem(
+                          value: l,
+                          child: Text(
+                            l.languageCode.toUpperCase(),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      )
+                      .toList(),
+              onChanged: (locale) {
+                if (locale != null) {
+                  localeProv.setLocale(locale);
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
         ],
       ),
-      drawer: MenuPage(),
+      drawer: const MenuPage(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               decoration: InputDecoration(
-                hintText: "Search",
-                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                hintText: loc.searchHint,
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.grey.shade200,
                 border: OutlineInputBorder(
@@ -117,38 +125,41 @@ class _BuyersPageState extends State<BuyersPage> {
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
-              "Eat what makes you healthy",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              loc.eatHealthy,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             SizedBox(
               height: 80,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children:
-                    categories.map((category) {
+                    categories.map((c) {
                       return GestureDetector(
-                        onTap: () => _onCategorySelected(category["name"]!),
+                        onTap: () => print("Filtering by ${c['key']}"),
                         child: Column(
                           children: [
-                            Image.asset(category["image"]!, width: 50),
-                            SizedBox(height: 5),
-                            Text(category["name"]!),
+                            Image.asset(c['image']!, width: 50),
+                            const SizedBox(height: 5),
+                            Text(c['name']!),
                           ],
                         ),
                       );
                     }).toList(),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Farms around you",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  loc.farmsAroundYou,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 IconButton(
                   icon: Icon(Icons.filter_list, color: Colors.grey.shade700),
@@ -162,40 +173,36 @@ class _BuyersPageState extends State<BuyersPage> {
                       .collection('farms')
                       .orderBy('timestamp', descending: true)
                       .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
+              builder: (ctx, snap) {
+                if (!snap.hasData) {
                   return Padding(
-                    padding: EdgeInsets.only(top: 20),
-                    child: Center(child: CircularProgressIndicator()),
+                    padding: const EdgeInsets.only(top: 20),
+                    child: Center(child: Text(loc.loading)),
                   );
                 }
-                final farmDocs = snapshot.data!.docs;
-
-                if (farmDocs.isEmpty) {
+                final docs = snap.data!.docs;
+                if (docs.isEmpty) {
                   return Padding(
-                    padding: EdgeInsets.only(top: 20),
-                    child: Text("No farms found."),
+                    padding: const EdgeInsets.only(top: 20),
+                    child: Text(loc.noFarmsFound),
                   );
                 }
-
                 return ListView.builder(
                   shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: farmDocs.length,
-                  itemBuilder: (context, index) {
-                    final farm = farmDocs[index].data() as Map<String, dynamic>;
-                    final farmName = farm["farmName"] ?? "Unnamed Farm";
-                    final description =
-                        farm["farmDescription"] ?? "No description";
-                    final imageUrl =
-                        farm["imageUrl"] ?? "assets/sample_farm.png";
-                    final scale = farm["scale"] ?? "N/A";
-                    final rating = farm["rating"] ?? 4.0;
-
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: docs.length,
+                  itemBuilder: (_, i) {
+                    final farm = docs[i].data()! as Map<String, dynamic>;
                     return GestureDetector(
-                      onTap: () => _onFarmSelected(farmDocs[index]),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProductPage(farmId: docs[i].id),
+                            ),
+                          ),
                       child: Card(
-                        margin: EdgeInsets.only(bottom: 15),
+                        margin: const EdgeInsets.only(bottom: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -203,57 +210,65 @@ class _BuyersPageState extends State<BuyersPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             ClipRRect(
-                              borderRadius: BorderRadius.vertical(
+                              borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(10),
                               ),
                               child:
-                                  imageUrl.startsWith("assets/")
+                                  (farm['imageUrl'] as String?)?.startsWith(
+                                            'assets/',
+                                          ) ??
+                                          false
                                       ? Image.asset(
-                                        imageUrl,
+                                        farm['imageUrl'],
                                         height: 150,
                                         width: double.infinity,
                                         fit: BoxFit.cover,
                                       )
                                       : Image.network(
-                                        imageUrl,
+                                        farm['imageUrl'],
                                         height: 150,
                                         width: double.infinity,
                                         fit: BoxFit.cover,
                                       ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.all(10.0),
+                              padding: const EdgeInsets.all(10),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    farmName,
-                                    style: TextStyle(
+                                    farm['farmName'] ?? loc.unnamedFarm,
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  SizedBox(height: 5),
+                                  const SizedBox(height: 5),
                                   Text(
-                                    description,
+                                    farm['farmDescription'] ??
+                                        loc.noDescription,
                                     style: TextStyle(
                                       color: Colors.grey.shade700,
                                     ),
                                   ),
-                                  SizedBox(height: 5),
+                                  const SizedBox(height: 5),
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("Scale: $scale"),
+                                      Text(
+                                        '${loc.scaleLabel}: ${farm['scale'] ?? 'N/A'}',
+                                      ),
                                       Row(
                                         children: [
-                                          Icon(
+                                          const Icon(
                                             Icons.star,
                                             color: Colors.orange,
                                             size: 16,
                                           ),
-                                          Text(rating.toString()),
+                                          Text(
+                                            (farm['rating'] ?? 0).toString(),
+                                          ),
                                         ],
                                       ),
                                     ],
@@ -278,13 +293,22 @@ class _BuyersPageState extends State<BuyersPage> {
         unselectedItemColor: Colors.grey,
         onTap: _onNavItemTapped,
         items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.apartment),
-            label: 'Community',
+            icon: const Icon(Icons.home),
+            label: loc.navHome,
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag), label: 'Buy'),
-          BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.apartment),
+            label: loc.navCommunity,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.shopping_bag),
+            label: loc.navBuy,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.store),
+            label: loc.navShop,
+          ),
         ],
       ),
     );

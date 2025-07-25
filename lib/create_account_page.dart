@@ -64,11 +64,16 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent, // ✅ Ensure background is transparent
-      body: SafeArea( // ✅ Add SafeArea to avoid overlapping with system UI
-        child: SingleChildScrollView( // ✅ Wrap with SingleChildScrollView
+      body: SafeArea(
+        // ✅ Add SafeArea to avoid overlapping with system UI
+        child: SingleChildScrollView(
+          // ✅ Wrap with SingleChildScrollView
           child: Container(
             width: double.infinity,
-            height: MediaQuery.of(context).size.height, // ✅ Adjust height dynamically
+            height:
+                MediaQuery.of(
+                  context,
+                ).size.height, // ✅ Adjust height dynamically
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.3),
               image: DecorationImage(
@@ -94,13 +99,20 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                 ),
                 SizedBox(height: 20),
 
-                _buildTextField("Username", usernameController), // ✅ Username field
+                _buildTextField(
+                  "Username",
+                  usernameController,
+                ), // ✅ Username field
                 _buildTextField("Email Address", emailController),
                 _buildTextField(
                   "Phone Number",
                   phoneController,
                 ), // ✅ Phone number field
-                _buildTextField("Password", passwordController, isPassword: true),
+                _buildTextField(
+                  "Password",
+                  passwordController,
+                  isPassword: true,
+                ),
 
                 SizedBox(height: 20),
                 ElevatedButton(
@@ -108,27 +120,34 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                     backgroundColor: Colors.orange,
                     padding: EdgeInsets.symmetric(vertical: 15),
                   ),
-                  onPressed: _isLoading ? null : _registerUser, // Disable button when loading
-                  child: _isLoading
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Create an account",
-                              style: TextStyle(fontSize: 18, color: Colors.white),
+                  onPressed:
+                      _isLoading
+                          ? null
+                          : _registerUser, // Disable button when loading
+                  child:
+                      _isLoading
+                          ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
                             ),
-                            SizedBox(width: 10),
-                            Icon(Icons.arrow_forward, color: Colors.white),
-                          ],
-                        ),
+                          )
+                          : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Create an account",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Icon(Icons.arrow_forward, color: Colors.white),
+                            ],
+                          ),
                 ),
                 SizedBox(height: 10),
                 Center(

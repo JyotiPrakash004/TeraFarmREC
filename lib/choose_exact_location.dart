@@ -6,7 +6,8 @@ class ChooseExactLocationScreen extends StatefulWidget {
   const ChooseExactLocationScreen({Key? key}) : super(key: key);
 
   @override
-  State<ChooseExactLocationScreen> createState() => _ChooseExactLocationScreenState();
+  State<ChooseExactLocationScreen> createState() =>
+      _ChooseExactLocationScreenState();
 }
 
 class _ChooseExactLocationScreenState extends State<ChooseExactLocationScreen> {
@@ -23,7 +24,7 @@ class _ChooseExactLocationScreenState extends State<ChooseExactLocationScreen> {
             onPressed: () {
               Navigator.pop(context, selectedLocation);
             },
-          )
+          ),
         ],
       ),
       body: FlutterMap(
@@ -41,14 +42,19 @@ class _ChooseExactLocationScreenState extends State<ChooseExactLocationScreen> {
             urlTemplate:
                 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=YOUR_MAPBOX_ACCESS_TOKEN',
             additionalOptions: {
-              'accessToken': 'pk.eyJ1Ijoibm90bWFkIiwiYSI6ImNtOWRvbmxxcTBjYmIybXNhMTZwaWR5YWEifQ.uq5aCi9NGmifjGtj-XlT_g',
+              'accessToken':
+                  'pk.eyJ1Ijoibm90bWFkIiwiYSI6ImNtOWRvbmxxcTBjYmIybXNhMTZwaWR5YWEifQ.uq5aCi9NGmifjGtj-XlT_g',
             },
           ),
           MarkerLayer(
             markers: [
               Marker(
                 point: selectedLocation,
-                child: const Icon(Icons.location_on, size: 40, color: Colors.red),
+                child: const Icon(
+                  Icons.location_on,
+                  size: 40,
+                  color: Colors.red,
+                ),
               ),
             ],
           ),

@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'community_page.dart';
 import 'dashboard_page.dart';
+import 'cart_page.dart';
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key});
@@ -11,40 +13,149 @@ class ShopPage extends StatefulWidget {
 }
 
 class _ShopPageState extends State<ShopPage> {
-  final int _selectedIndex = 3; // Default index for Shop page
+  final int _selectedIndex = 3;
+  List<Map<String, dynamic>> farmingTools = [];
+  List<Map<String, dynamic>> seeds = [];
+  bool isLoading = true;
 
-  // Inventory Data
-  final List<Map<String, dynamic>> farmingTools = [
-    {"name": "Pots", "image": "assets/pot.png", "quantity": 0},
-    {"name": "Grow Bags", "image": "assets/growing_bags.png", "quantity": 0},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    loadInventory();
+  }
 
-  final List<Map<String, dynamic>> seeds = [
-    {"name": "Tomato seeds", "image": "assets/tomato_seed.png", "quantity": 0},
-    {"name": "Beans seeds", "image": "assets/beans.png", "quantity": 0},
-    {"name": "Apple seeds", "image": "assets/Apple.png", "quantity": 0},
-    {"name": "Grape seeds", "image": "assets/grape.png", "quantity": 0},
-  ];
+  Future<void> loadInventory() async {
+    final toolsSnapshot =
+        await FirebaseFirestore.instance.collection('farming_tools').get();
+    final seedsSnapshot =
+        await FirebaseFirestore.instance.collection('seeds').get();
 
-  // Function to update quantity
+    setState(() {
+      farmingTools =
+          toolsSnapshot.docs.map((doc) {
+            final data = doc.data();
+            return {
+              "id": doc.id,
+              "name": data["name"],
+              "image": data["image"],
+              "price": data["price"],
+              "unit": data["unit"],
+              "stock": data["stock"],
+              "sellerId": data["sellerId"],
+              "quantity": 0,
+            };
+          }).toList();
+
+      seeds =
+          seedsSnapshot.docs.map((doc) {
+            final data = doc.data();
+            return {
+              "id": doc.id,
+              "name": data["name"],
+              "image": data["image"],
+              "price": data["price"],
+              "unit": data["unit"],
+              "stock": data["stock"],
+              "sellerId": data["sellerId"],
+              "quantity": 0,
+            };
+          }).toList();
+
+      isLoading = false;
+    });
+  }
+
+  Future<void> uploadInventoryData() async {
+    final firestore = FirebaseFirestore.instance;
+
+    final List<Map<String, dynamic>> tools = [
+      {
+        "name": "Pots",
+        "image": "assets/pot.png",
+        "price": 25,
+        "unit": "1 piece",
+        "stock": 100,
+        "sellerId": "seller_tools_001",
+      },
+      {
+        "name": "Grow Bags",
+        "image": "assets/growing_bags.png",
+        "price": 30,
+        "unit": "1 piece",
+        "stock": 80,
+        "sellerId": "seller_tools_002",
+      },
+    ];
+
+    final List<Map<String, dynamic>> seeds = [
+      {
+        "name": "Tomato Seeds",
+        "image": "assets/tomato_seed.png",
+        "price": 20,
+        "unit": "50 gms",
+        "stock": 150,
+        "sellerId": "seller_seeds_001",
+      },
+      {
+        "name": "Beans Seeds",
+        "image": "assets/beans.png",
+        "price": 18,
+        "unit": "50 gms",
+        "stock": 120,
+        "sellerId": "seller_seeds_001",
+      },
+      {
+        "name": "Apple Seeds",
+        "image": "assets/Apple.png",
+        "price": 40,
+        "unit": "100 gms",
+        "stock": 60,
+        "sellerId": "seller_seeds_002",
+      },
+      {
+        "name": "Grape Seeds",
+        "image": "assets/grape.png",
+        "price": 35,
+        "unit": "50 gms",
+        "stock": 70,
+        "sellerId": "seller_seeds_002",
+      },
+    ];
+
+    for (var tool in tools) {
+      await firestore.collection('farming_tools').add(tool);
+    }
+
+    for (var seed in seeds) {
+      await firestore.collection('seeds').add(seed);
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Inventory uploaded to Firestore!")),
+      );
+      loadInventory(); // refresh UI
+    }
+  }
+
   void updateQuantity(
     List<Map<String, dynamic>> category,
     int index,
     int change,
   ) {
     setState(() {
-      category[index]["quantity"] = (category[index]["quantity"] + change)
-          .clamp(0, 99);
+      final current = category[index]["quantity"];
+      final stock = category[index]["stock"];
+      final newQuantity = (current + change).clamp(0, stock);
+      category[index]["quantity"] = newQuantity;
     });
   }
 
-  // Function to check if any item is added
   bool hasItemsInCart() {
     return farmingTools.any((item) => item["quantity"] > 0) ||
         seeds.any((item) => item["quantity"] > 0);
   }
 
-  // UI for list items
   Widget buildInventoryItem(
     Map<String, dynamic> item,
     List<Map<String, dynamic>> category,
@@ -61,7 +172,7 @@ class _ShopPageState extends State<ShopPage> {
               width: 50,
               height: 50,
               errorBuilder: (context, error, stackTrace) {
-                return Icon(
+                return const Icon(
                   Icons.image_not_supported,
                   size: 50,
                   color: Colors.grey,
@@ -70,12 +181,19 @@ class _ShopPageState extends State<ShopPage> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                item["name"],
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item["name"],
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text("₹${item["price"]} / ${item["unit"]}"),
+                  Text("In stock: ${item["stock"]}"),
+                ],
               ),
             ),
             Container(
@@ -87,9 +205,7 @@ class _ShopPageState extends State<ShopPage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.remove, color: Colors.red),
-                    onPressed: () {
-                      updateQuantity(category, index, -1);
-                    },
+                    onPressed: () => updateQuantity(category, index, -1),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -103,9 +219,7 @@ class _ShopPageState extends State<ShopPage> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.add, color: Colors.green),
-                    onPressed: () {
-                      updateQuantity(category, index, 1);
-                    },
+                    onPressed: () => updateQuantity(category, index, 1),
                   ),
                 ],
               ),
@@ -116,9 +230,8 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
-  // Handle navigation changes
   void _onNavItemTapped(int index) {
-    if (index == _selectedIndex) return; // Prevent reloading the same page
+    if (index == _selectedIndex) return;
 
     if (index == 0) {
       Navigator.pushReplacement(
@@ -145,61 +258,81 @@ class _ShopPageState extends State<ShopPage> {
         automaticallyImplyLeading: false,
         title: const Text("Shop"),
         backgroundColor: Colors.green.shade800,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_upload),
+            tooltip: "Upload Demo Inventory",
+            onPressed: uploadInventoryData,
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(10),
-        child: ListView(
-          children: [
-            const Text(
-              "Inventory",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Farming tools",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Column(
-              children:
-                  farmingTools
-                      .asMap()
-                      .entries
-                      .map(
-                        (entry) => buildInventoryItem(
-                          entry.value,
-                          farmingTools,
-                          entry.key,
-                        ),
-                      )
-                      .toList(),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Seeds",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Column(
-              children:
-                  seeds
-                      .asMap()
-                      .entries
-                      .map(
-                        (entry) =>
-                            buildInventoryItem(entry.value, seeds, entry.key),
-                      )
-                      .toList(),
-            ),
-          ],
-        ),
-      ),
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: const EdgeInsets.all(10),
+                child: ListView(
+                  children: [
+                    const Text(
+                      "Inventory",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Farming tools",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    ...farmingTools
+                        .asMap()
+                        .entries
+                        .map(
+                          (entry) => buildInventoryItem(
+                            entry.value,
+                            farmingTools,
+                            entry.key,
+                          ),
+                        )
+                        .toList(),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Seeds",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    ...seeds
+                        .asMap()
+                        .entries
+                        .map(
+                          (entry) =>
+                              buildInventoryItem(entry.value, seeds, entry.key),
+                        )
+                        .toList(),
+                  ],
+                ),
+              ),
       floatingActionButton:
           hasItemsInCart()
               ? FloatingActionButton.extended(
                 backgroundColor: Colors.green,
                 onPressed: () {
-                  Navigator.pushReplacement(
+                  List<Map<String, dynamic>> selectedItems =
+                      [
+                        ...farmingTools,
+                        ...seeds,
+                      ].where((item) => item["quantity"] > 0).toList();
+                  Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => DashboardPage()),
+                    MaterialPageRoute(
+                      builder: (context) => CartPage(cartItems: selectedItems),
+                    ),
                   );
                 },
                 label: const Text("Buy Now"),

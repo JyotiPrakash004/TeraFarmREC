@@ -7,7 +7,8 @@ import 'package:latlong2/latlong.dart';
 class AddressMapPicker extends StatefulWidget {
   final LatLng initialLocation;
 
-  const AddressMapPicker({Key? key, required this.initialLocation}) : super(key: key);
+  const AddressMapPicker({Key? key, required this.initialLocation})
+    : super(key: key);
 
   @override
   _AddressMapPickerState createState() => _AddressMapPickerState();
@@ -30,9 +31,10 @@ class _AddressMapPickerState extends State<AddressMapPicker> {
       _isLoading = true;
     });
     // Replace with your actual OpenRouteService API key.
-    final String apiKey = "5b3ce3597851110001cf624864d0a9022ccf426585696672ccf66652";
+    final String apiKey =
+        "5b3ce3597851110001cf624864d0a9022ccf426585696672ccf66652";
     final uri = Uri.parse(
-      "https://api.openrouteservice.org/geocode/reverse?api_key=$apiKey&point.lat=${_selectedLocation.latitude}&point.lon=${_selectedLocation.longitude}&size=1"
+      "https://api.openrouteservice.org/geocode/reverse?api_key=$apiKey&point.lat=${_selectedLocation.latitude}&point.lon=${_selectedLocation.longitude}&size=1",
     );
     try {
       final response = await http.get(uri);
@@ -74,7 +76,9 @@ class _AddressMapPickerState extends State<AddressMapPicker> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8, // Use 80% of the screen height.
+      height:
+          MediaQuery.of(context).size.height *
+          0.8, // Use 80% of the screen height.
       child: Column(
         children: [
           Expanded(
@@ -86,7 +90,8 @@ class _AddressMapPickerState extends State<AddressMapPicker> {
               ),
               children: [
                 TileLayer(
-                  urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                  urlTemplate:
+                      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                   subdomains: const ['a', 'b', 'c'],
                 ),
                 MarkerLayer(
@@ -108,35 +113,41 @@ class _AddressMapPickerState extends State<AddressMapPicker> {
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: _isLoading
-                ? const CircularProgressIndicator()
-                : Text(
-                    _selectedAddress.isNotEmpty
-                        ? _selectedAddress
-                        : "Tap on the map to select your location",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16),
-                  ),
+            child:
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : Text(
+                      _selectedAddress.isNotEmpty
+                          ? _selectedAddress
+                          : "Tap on the map to select your location",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
+                    ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
                 onPressed: _reverseGeocode,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 255, 255, 255)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+                ),
                 child: const Text("Get Address"),
               ),
               ElevatedButton(
-                onPressed: _selectedAddress.isNotEmpty
-                    ? () {
-                        Navigator.pop(context, {
-                          "address": _selectedAddress,
-                          "lat": _selectedLocation.latitude,
-                          "lng": _selectedLocation.longitude,
-                        });
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 255, 255, 255)),
+                onPressed:
+                    _selectedAddress.isNotEmpty
+                        ? () {
+                          Navigator.pop(context, {
+                            "address": _selectedAddress,
+                            "lat": _selectedLocation.latitude,
+                            "lng": _selectedLocation.longitude,
+                          });
+                        }
+                        : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+                ),
                 child: const Text("Confirm Location"),
               ),
             ],

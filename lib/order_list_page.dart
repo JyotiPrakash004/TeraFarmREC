@@ -13,6 +13,48 @@ class _OrderListPageState extends State<OrderListPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // List of userIds you’re in collaboration with
+  List<String> _collaboratorUserIds = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCollaborators();
+  }
+
+  // NEW: Load all approved collaborator userIds
+  Future<void> _loadCollaborators() async {
+    final currentUserId = _auth.currentUser!.uid;
+
+    // 1) Find this user's farm
+    final farmQuery =
+        await _firestore
+            .collection('farms')
+            .where('sellerId', isEqualTo: currentUserId)
+            .limit(1)
+            .get();
+    if (farmQuery.docs.isEmpty) return;
+    final userFarmId = farmQuery.docs.first.id;
+
+    // 2) Fetch approved collaborations where this farm is requester
+    final collabQuery =
+        await _firestore
+            .collection('collabRequests')
+            .where('requesterId', isEqualTo: currentUserId)
+            .where('status', isEqualTo: 'approved')
+            .get();
+
+    // 3) For each approved farmId, get its sellerId (the collaborator)
+    final List<String> ids = [];
+    for (var doc in collabQuery.docs) {
+      final farmDoc =
+          await _firestore.collection('farms').doc(doc['farmId']).get();
+      if (farmDoc.exists) ids.add(farmDoc['sellerId'] as String);
+    }
+
+    setState(() => _collaboratorUserIds = ids);
+  }
+
   // Update the status of an order
   Future<void> _updateOrderStatus(String orderId, String newStatus) async {
     await _firestore.collection('orders').doc(orderId).update({
@@ -20,25 +62,59 @@ class _OrderListPageState extends State<OrderListPage> {
     });
   }
 
+  // NEW: Send order-level collaboration requests to all collaborators
+  Future<void> _sendOrderCollabRequests(String orderId) async {
+    final currentUserId = _auth.currentUser!.uid;
+
+    // Fetch the current user's farmId
+    final farmQuery =
+        await _firestore
+            .collection('farms')
+            .where('sellerId', isEqualTo: currentUserId)
+            .limit(1)
+            .get();
+
+    if (farmQuery.docs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No farm found for current user.')),
+      );
+      return;
+    }
+
+    final farmId = farmQuery.docs.first.id;
+
+    for (var toUserId in _collaboratorUserIds) {
+      await _firestore.collection('orderCollabRequests').add({
+        'orderId': orderId,
+        'fromFarmerId': currentUserId,
+        'toFarmerId': toUserId,
+        'farmId': farmId, // ✅ Automatically included
+        'status': 'pending',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Collaboration request sent!')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // The seller must be logged in; we use that seller's UID to filter orders
     final String sellerId = _auth.currentUser!.uid;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.green.shade800,
-        title: const Text(
-          "Orders",
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text("Orders", style: TextStyle(color: Colors.white)),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('orders')
-            .where('sellerId', isEqualTo: sellerId)
-            .snapshots(),
+        stream:
+            _firestore
+                .collection('orders')
+                .where('sellerId', isEqualTo: sellerId)
+                .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -47,20 +123,19 @@ class _OrderListPageState extends State<OrderListPage> {
           final allOrders = snapshot.data!.docs;
 
           // Separate orders by status
-          final pendingOrders = allOrders
-              .where((doc) => (doc['status'] ?? 'pending') == 'pending')
-              .toList();
-
-          // "accepted" = in-between status
-          final acceptedOrders = allOrders
-              .where((doc) => (doc['status'] ?? '') == 'accepted')
-              .toList();
-
-          // completed = "rejected", "delivered", or "cancelled"
-          final completedOrders = allOrders.where((doc) {
-            final s = (doc['status'] ?? '').toString().toLowerCase();
-            return s == 'rejected' || s == 'delivered' || s == 'cancelled';
-          }).toList();
+          final pendingOrders =
+              allOrders
+                  .where((doc) => (doc['status'] ?? 'pending') == 'pending')
+                  .toList();
+          final acceptedOrders =
+              allOrders
+                  .where((doc) => (doc['status'] ?? '') == 'accepted')
+                  .toList();
+          final completedOrders =
+              allOrders.where((doc) {
+                final s = (doc['status'] ?? '').toString().toLowerCase();
+                return s == 'rejected' || s == 'delivered' || s == 'cancelled';
+              }).toList();
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -118,20 +193,21 @@ class _OrderListPageState extends State<OrderListPage> {
     final String buyerId = data['buyerId'] ?? "unknown";
     final String location = data['location'] ?? "Unknown";
     final String deliveryType = data['delivery'] ?? "pickup";
-    final String productImage = (data["cartItems"] as List?)?.first["image"] ?? "assets/placeholder.png";
+    final String productImage =
+        (data["cartItems"] as List?)?.first["image"] ??
+        "assets/placeholder.png";
 
     return FutureBuilder<DocumentSnapshot>(
       future: _firestore.collection('users').doc(buyerId).get(),
       builder: (context, snapshot) {
-        final buyerName = snapshot.hasData && snapshot.data!.exists
-            ? snapshot.data!.get('username') ?? "Unknown"
-            : "Unknown";
+        final buyerName =
+            snapshot.hasData && snapshot.data!.exists
+                ? snapshot.data!.get('username') ?? "Unknown"
+                : "Unknown";
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -181,7 +257,6 @@ class _OrderListPageState extends State<OrderListPage> {
   Widget _buildActionButtons(String status, String orderId) {
     switch (status.toLowerCase()) {
       case 'pending':
-        // Show green check (accept) and red X (reject)
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -193,20 +268,24 @@ class _OrderListPageState extends State<OrderListPage> {
               icon: const Icon(Icons.cancel, color: Colors.red),
               onPressed: () => _updateOrderStatus(orderId, 'rejected'),
             ),
+            if (_collaboratorUserIds.isNotEmpty) ...[
+              IconButton(
+                icon: const Icon(Icons.group, color: Colors.blue),
+                onPressed: () => _sendOrderCollabRequests(orderId),
+              ),
+            ],
           ],
         );
 
       case 'accepted':
-        // Stack "Delivered" above "Cancelled" in a Column
         return Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end, // Right-align the buttons
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 minimumSize: const Size(80, 36),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
               onPressed: () => _updateOrderStatus(orderId, 'delivered'),
               child: const Text("Delivered", style: TextStyle(fontSize: 14)),
@@ -216,7 +295,6 @@ class _OrderListPageState extends State<OrderListPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 minimumSize: const Size(80, 36),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
               onPressed: () => _updateOrderStatus(orderId, 'cancelled'),
               child: const Text("Cancelled", style: TextStyle(fontSize: 14)),
@@ -225,13 +303,11 @@ class _OrderListPageState extends State<OrderListPage> {
         );
 
       case 'rejected':
+      case 'cancelled':
         return _buildStatusLabel("cancelled");
 
       case 'delivered':
         return _buildStatusLabel("delivered");
-
-      case 'cancelled':
-        return _buildStatusLabel("cancelled");
 
       default:
         return _buildStatusLabel(status);
@@ -264,13 +340,7 @@ class _OrderListPageState extends State<OrderListPage> {
         color: bgColor,
         borderRadius: BorderRadius.circular(5),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      child: Text(text, style: const TextStyle(color: Colors.white)),
     );
   }
 }

@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'farm_collab_detail_page.dart';
 
 class ColabPage extends StatefulWidget {
   const ColabPage({super.key});
@@ -13,15 +16,33 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
   late TabController _tabController;
   bool isReadyToCollab = false;
   String? userFarmId;
+  String searchQuery = '';
   final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
   Map<String, DocumentSnapshot> _sentRequests = {};
+
+  Map<String, double>? userLocation;
+  String distanceFilter = 'All';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadSavedFilter();
     _loadUserFarm();
     _loadSentRequests();
+  }
+
+  Future<void> _loadSavedFilter() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('colab_distance_filter');
+    if (saved != null && mounted) {
+      setState(() => distanceFilter = saved);
+    }
+  }
+
+  Future<void> _saveFilter(String newFilter) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('colab_distance_filter', newFilter);
   }
 
   Future<void> _loadUserFarm() async {
@@ -38,6 +59,9 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
       setState(() {
         isReadyToCollab = doc['isReadyToCollab'] ?? false;
       });
+      if (doc['latitude'] != null && doc['longitude'] != null) {
+        userLocation = {'lat': doc['latitude'], 'lng': doc['longitude']};
+      }
     }
   }
 
@@ -59,9 +83,7 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
           .collection('farms')
           .doc(userFarmId)
           .update({'isReadyToCollab': value});
-      setState(() {
-        isReadyToCollab = value;
-      });
+      setState(() => isReadyToCollab = value);
     }
   }
 
@@ -74,12 +96,8 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
           'status': 'pending',
           'timestamp': FieldValue.serverTimestamp(),
         });
-
     final newDoc = await docRef.get();
-    setState(() {
-      _sentRequests[farmId] = newDoc;
-    });
-
+    setState(() => _sentRequests[farmId] = newDoc);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Collaboration request sent!')),
     );
@@ -90,11 +108,7 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
         .collection('collabRequests')
         .doc(requestId)
         .delete();
-
-    setState(() {
-      _sentRequests.remove(farmId);
-    });
-
+    setState(() => _sentRequests.remove(farmId));
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Request cancelled.')));
@@ -105,7 +119,6 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
         .collection('collabRequests')
         .doc(requestId)
         .update({'status': 'approved'});
-
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Request approved.')));
@@ -116,7 +129,6 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
         .collection('collabRequests')
         .doc(requestId)
         .update({'status': 'rejected'});
-
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Request rejected.')));
@@ -127,10 +139,50 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
         .collection('collabRequests')
         .doc(requestId)
         .delete();
-
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Collaboration ended.')));
+  }
+
+  Future<void> _approveOrderCollab(String docId, String orderId) async {
+    final batch = FirebaseFirestore.instance.batch();
+    final reqRef = FirebaseFirestore.instance
+        .collection('orderCollabRequests')
+        .doc(docId);
+    batch.update(reqRef, {'status': 'approved'});
+
+    final others =
+        await FirebaseFirestore.instance
+            .collection('orderCollabRequests')
+            .where('orderId', isEqualTo: orderId)
+            .where('status', isEqualTo: 'pending')
+            .get();
+    for (var d in others.docs) {
+      if (d.id != docId) batch.update(d.reference, {'status': 'expired'});
+    }
+
+    final orderRef = FirebaseFirestore.instance
+        .collection('orders')
+        .doc(orderId);
+    batch.update(orderRef, {
+      'status': 'collaborating',
+      'collaboratorId': currentUserId,
+    });
+
+    await batch.commit();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Order collaboration accepted!')),
+    );
+  }
+
+  Future<void> _rejectOrderCollab(String docId) async {
+    await FirebaseFirestore.instance
+        .collection('orderCollabRequests')
+        .doc(docId)
+        .update({'status': 'rejected'});
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Order collaboration rejected.')),
+    );
   }
 
   Widget _buildApplyRequestsTab() {
@@ -141,6 +193,39 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
           value: isReadyToCollab,
           onChanged: (val) => _updateReadiness(val),
         ),
+        if (isReadyToCollab)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: TextField(
+              decoration: const InputDecoration(
+                labelText: 'Search farms...',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged:
+                  (val) => setState(() => searchQuery = val.toLowerCase()),
+            ),
+          ),
+        if (isReadyToCollab)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
+            child: DropdownButtonFormField<String>(
+              value: distanceFilter,
+              decoration: const InputDecoration(
+                labelText: 'Filter by distance',
+              ),
+              items: const [
+                DropdownMenuItem(value: 'All', child: Text('All Farms')),
+                DropdownMenuItem(value: '5km', child: Text('Within 5 km')),
+                DropdownMenuItem(value: '1km', child: Text('Within 1 km')),
+              ],
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => distanceFilter = val);
+                  _saveFilter(val);
+                }
+              },
+            ),
+          ),
         if (isReadyToCollab)
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
@@ -157,11 +242,36 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
                 final farms =
                     snapshot.data!.docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
-                      return data['sellerId'] != currentUserId;
+                      final name =
+                          (data['farmName'] ?? '').toString().toLowerCase();
+
+                      if (data['sellerId'] == currentUserId ||
+                          !name.contains(searchQuery)) {
+                        return false;
+                      }
+
+                      if (distanceFilter != 'All' && userLocation != null) {
+                        if (data['latitude'] == null ||
+                            data['longitude'] == null) {
+                          return false;
+                        }
+                        final dist = Geolocator.distanceBetween(
+                          userLocation!['lat']!,
+                          userLocation!['lng']!,
+                          data['latitude'],
+                          data['longitude'],
+                        );
+                        if (distanceFilter == '5km' && dist > 5000)
+                          return false;
+                        if (distanceFilter == '1km' && dist > 1000)
+                          return false;
+                      }
+
+                      return true;
                     }).toList();
 
                 if (farms.isEmpty) {
-                  return const Center(child: Text('No farms are ready.'));
+                  return const Center(child: Text('No farms found.'));
                 }
 
                 return ListView.builder(
@@ -171,7 +281,7 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
                     final data = doc.data() as Map<String, dynamic>;
                     final farmId = doc.id;
                     final requestDoc = _sentRequests[farmId];
-                    final requestStatus = requestDoc?.get('status');
+                    final status = requestDoc?.get('status');
 
                     return Card(
                       margin: const EdgeInsets.all(8),
@@ -182,12 +292,12 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
                           height: 60,
                           fit: BoxFit.cover,
                         ),
-                        title: Text(data['name'] ?? 'Unnamed Farm'),
+                        title: Text(data['farmName'] ?? 'Unnamed Farm'),
                         subtitle: Text(
                           "Location: ${data['location'] ?? 'Unknown'}",
                         ),
                         trailing:
-                            requestStatus == null
+                            status == null
                                 ? ElevatedButton(
                                   onPressed: () => _sendCollabRequest(farmId),
                                   child: const Text("Request"),
@@ -196,20 +306,20 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      requestStatus[0].toUpperCase() +
-                                          requestStatus.substring(1),
+                                      status[0].toUpperCase() +
+                                          status.substring(1),
                                       style: TextStyle(
                                         color:
-                                            requestStatus == 'approved'
+                                            status == 'approved'
                                                 ? Colors.green
-                                                : requestStatus == 'rejected'
+                                                : status == 'rejected'
                                                 ? Colors.red
                                                 : Colors.orange,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     const SizedBox(width: 10),
-                                    if (requestStatus == 'pending')
+                                    if (status == 'pending')
                                       IconButton(
                                         icon: const Icon(Icons.cancel),
                                         color: Colors.red,
@@ -236,7 +346,6 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
     if (userFarmId == null) {
       return const Center(child: CircularProgressIndicator());
     }
-
     return StreamBuilder<QuerySnapshot>(
       stream:
           FirebaseFirestore.instance
@@ -248,19 +357,15 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-
         final requests = snapshot.data!.docs;
-
         if (requests.isEmpty) {
           return const Center(child: Text('No pending requests.'));
         }
-
         return ListView.builder(
           itemCount: requests.length,
           itemBuilder: (context, index) {
             final data = requests[index].data() as Map<String, dynamic>;
             final requestId = requests[index].id;
-
             return Card(
               margin: const EdgeInsets.all(8),
               child: ListTile(
@@ -302,20 +407,16 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-
         final requests = snapshot.data!.docs;
-
         if (requests.isEmpty) {
           return const Center(child: Text('No collaborations yet.'));
         }
-
         return ListView.builder(
           itemCount: requests.length,
           itemBuilder: (context, index) {
             final request = requests[index];
             final data = request.data() as Map<String, dynamic>;
             final farmId = data['farmId'];
-
             return FutureBuilder<DocumentSnapshot>(
               future:
                   FirebaseFirestore.instance
@@ -326,19 +427,31 @@ class _ColabPageState extends State<ColabPage> with TickerProviderStateMixin {
                 if (!farmSnapshot.hasData || !farmSnapshot.data!.exists) {
                   return const SizedBox();
                 }
-
                 final farm = farmSnapshot.data!.data() as Map<String, dynamic>;
-
                 return Card(
                   margin: const EdgeInsets.all(8),
                   child: ListTile(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => FarmCollabDetailPage(
+                                farmId: farmId,
+                                farmName: farm['farmName'] ?? 'Unnamed Farm',
+                                imageUrl: farm['imageUrl'] ?? '',
+                                owner: farm['owner'] ?? 'Unknown',
+                              ),
+                        ),
+                      );
+                    },
                     leading: Image.network(
                       farm['imageUrl'] ?? '',
                       width: 60,
                       height: 60,
                       fit: BoxFit.cover,
                     ),
-                    title: Text(farm['name'] ?? 'Unnamed Farm'),
+                    title: Text(farm['farmName'] ?? 'Unnamed Farm'),
                     subtitle: Text("Owner: ${farm['owner'] ?? 'Unknown'}"),
                     trailing: TextButton(
                       onPressed: () => _endCollaboration(request.id),
